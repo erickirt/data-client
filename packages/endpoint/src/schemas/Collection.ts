@@ -13,7 +13,11 @@ import type { DefaultArgs } from '../schemaTypes.js';
 const pushMerge = (existing: any, incoming: any) => {
   return [...existing, ...incoming];
 };
-const unshiftMerge = (existing: any, incoming: any) => {
+/** Collection merge that places incoming items at the start.
+ *
+ * @see https://dataclient.io/rest/api/Collection#moveWith
+ */
+export const unshift = (existing: any, incoming: any) => {
   return [...incoming, ...existing];
 };
 const valuesMerge = (existing: any, incoming: any) => {
@@ -88,6 +92,14 @@ export default class CollectionSchema<
     return CreateAdder(this, merge, createCollectionFilter);
   }
 
+  moveWith<P extends any[] = Args>(
+    merge: (existing: any, incoming: any) => any,
+  ): CollectionSchema<S, P> {
+    const rMerge =
+      this.schema instanceof ArraySchema ? removeMerge : valuesRemoveMerge;
+    return CreateMover(this, merge, rMerge);
+  }
+
   // this adds to any list *in store* that has same members as the urlParams
   // so fetch(create, { userId: 'bob', completed: true }, data)
   // would possibly add to {}, {userId: 'bob'}, {completed: true}, {userId: 'bob', completed: true } - but only those already in the store
@@ -147,7 +159,7 @@ export default class CollectionSchema<
     if (this.schema instanceof ArraySchema) {
       this.createIfValid = createArray;
       this.push = CreateAdder(this, pushMerge);
-      this.unshift = CreateAdder(this, unshiftMerge);
+      this.unshift = CreateAdder(this, unshift);
       this.remove = CreateAdder(this, removeMerge);
       this.move = CreateMover(this, pushMerge, removeMerge);
     } else if (schema instanceof Values) {

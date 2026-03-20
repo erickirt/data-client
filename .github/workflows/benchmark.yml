@@ -41,9 +41,7 @@ jobs:
         node-version: '24'
         cache: 'yarn'
     - name: Install packages
-      run: |
-        corepack enable
-        yarn install --immutable
+      run: ./scripts/ci-install.sh examples/benchmark
     - name: Build packages
       run: yarn build:benchmark
     - name: Run benchmark

@@ -24,9 +24,7 @@ jobs:
           cache: 'yarn'
           registry-url: 'https://registry.npmjs.org'
       - name: Install packages
-        run: |
-          corepack enable
-          yarn install --immutable
+        run: ./scripts/ci-install.sh
 
       - name: Create Release Pull Request or Publish to npm
         id: changesets

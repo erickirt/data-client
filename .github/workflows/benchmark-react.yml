@@ -43,9 +43,7 @@ jobs:
           node-version: '24'
           cache: 'yarn'
       - name: Install packages
-        run: |
-          corepack enable
-          yarn install --immutable
+        run: ./scripts/ci-install.sh examples/benchmark-react
       - name: Install Playwright (Chromium + system deps)
         run: npx playwright install chromium --with-deps
       - name: Build packages

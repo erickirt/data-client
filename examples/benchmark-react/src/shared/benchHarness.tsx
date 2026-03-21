@@ -80,6 +80,7 @@ export function useBenchState() {
   const [detailIssueNumber, setDetailIssueNumber] = useState<number | null>(
     null,
   );
+  const [pinnedNumbers, setPinnedNumbers] = useState<number[]>([]);
   const [renderLimit, setRenderLimit] = useState<number | undefined>();
   const containerRef = useRef<HTMLDivElement>(null);
   const completeResolveRef = useRef<(() => void) | null>(null);
@@ -95,29 +96,41 @@ export function useBenchState() {
    * Measure a mount action via MutationObserver. Ends when expected content
    * ([data-bench-item] or [data-sorted-list]) appears in the container,
    * skipping intermediate states like Suspense fallbacks or empty first renders.
+   *
+   * Returns a promise that resolves when the mount content is detected.
+   * Pass `signalComplete: false` to suppress the data-bench-complete attribute
+   * (useful when the caller needs additional async work before signaling).
    */
   const measureMount = useCallback(
-    (fn: () => unknown) => {
+    (fn: () => unknown, { signalComplete = true } = {}): Promise<void> => {
       const container = containerRef.current!;
-      const observer = new MutationObserver(() => {
-        if (container.querySelector('[data-bench-item], [data-sorted-list]')) {
+      return new Promise<void>(resolve => {
+        const done = () => {
+          if (signalComplete) setComplete();
+          resolve();
+        };
+        const observer = new MutationObserver(() => {
+          if (
+            container.querySelector('[data-bench-item], [data-sorted-list]')
+          ) {
+            performance.mark('mount-end');
+            performance.measure('mount-duration', 'mount-start', 'mount-end');
+            observer.disconnect();
+            clearTimeout(timer);
+            done();
+          }
+        });
+        observer.observe(container, OBSERVE_MUTATIONS);
+        const timer = setTimeout(() => {
+          observer.disconnect();
           performance.mark('mount-end');
           performance.measure('mount-duration', 'mount-start', 'mount-end');
-          observer.disconnect();
-          clearTimeout(timer);
-          setComplete();
-        }
+          container.setAttribute('data-bench-timeout', 'true');
+          done();
+        }, 30000);
+        performance.mark('mount-start');
+        fn();
       });
-      observer.observe(container, OBSERVE_MUTATIONS);
-      const timer = setTimeout(() => {
-        observer.disconnect();
-        performance.mark('mount-end');
-        performance.measure('mount-duration', 'mount-start', 'mount-end');
-        container.setAttribute('data-bench-timeout', 'true');
-        setComplete();
-      }, 30000);
-      performance.mark('mount-start');
-      fn();
     },
     [setComplete],
   );
@@ -195,6 +208,7 @@ export function useBenchState() {
     setShowDoubleList(false);
     setDoubleListCount(undefined);
     setDetailIssueNumber(null);
+    setPinnedNumbers([]);
   }, []);
 
   const initDoubleList = useCallback(
@@ -272,6 +286,31 @@ export function useBenchState() {
     ],
   );
 
+  const initMultiView = useCallback(
+    async (n: number) => {
+      await seedIssueList(FIXTURE_ISSUES.slice(0, n));
+
+      setDetailIssueNumber(1);
+      setPinnedNumbers(Array.from({ length: 10 }, (_, i) => i + 1));
+
+      await measureMount(() => setListViewCount(n), {
+        signalComplete: false,
+      });
+
+      await waitForElement('[data-detail-view]');
+      await waitForElement('[data-pinned-number]');
+      setComplete();
+    },
+    [
+      measureMount,
+      setListViewCount,
+      setDetailIssueNumber,
+      setPinnedNumbers,
+      waitForElement,
+      setComplete,
+    ],
+  );
+
   const getRenderedCount = useCallback(
     () => listViewCount ?? 0,
     [listViewCount],
@@ -289,6 +328,7 @@ export function useBenchState() {
     apiRef.current = {
       init,
       initDoubleList,
+      initMultiView,
       unmountAll,
       mountUnmountCycle,
       mountSortedView,
@@ -323,6 +363,7 @@ export function useBenchState() {
     showDoubleList,
     doubleListCount,
     detailIssueNumber,
+    pinnedNumbers,
     renderLimit,
     containerRef,
 

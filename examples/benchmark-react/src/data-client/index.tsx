@@ -29,9 +29,11 @@ import {
   IssueResource,
   sortedIssuesEndpoint,
 } from '@shared/resources';
-import { getIssue, patchIssue } from '@shared/server';
+import { patchIssue } from '@shared/server';
 import type { Issue } from '@shared/types';
-import React, { useCallback } from 'react';
+import React, { useCallback, useRef } from 'react';
+
+let mutationCounter = 0;
 
 /** GCPolicy with no interval (won't fire during timing scenarios) and instant
  *  expiry so an explicit sweep() collects all unreferenced data immediately. */
@@ -147,11 +149,12 @@ function BenchmarkHarness() {
     (number: number) => {
       const issue = FIXTURE_ISSUES_BY_NUMBER.get(number);
       if (!issue) return;
+      const v = ++mutationCounter;
       measureUpdate(() => {
         controller.fetch(
           IssueResource.update,
           { number },
-          { title: `${issue.title} (updated)` },
+          { title: `${issue.title} (v${v})` },
         );
       });
     },
@@ -162,11 +165,12 @@ function BenchmarkHarness() {
     (login: string) => {
       const user = FIXTURE_USERS_BY_LOGIN.get(login);
       if (!user) return;
+      const v = ++mutationCounter;
       measureUpdate(() => {
         controller.fetch(
           UserResource.update,
           { login },
-          { name: `${user.name} (updated)` },
+          { name: `${user.name} (v${v})` },
         );
       });
     },
@@ -196,13 +200,21 @@ function BenchmarkHarness() {
     [measureUpdate, controller],
   );
 
+  const moveStateRef = useRef<'open' | 'closed'>('closed');
+
   const moveItem = useCallback(
     (number: number) => {
+      const targetState = moveStateRef.current;
+      moveStateRef.current = targetState === 'closed' ? 'open' : 'closed';
       measureUpdate(
         () => {
-          controller.fetch(IssueResource.move, { number }, { state: 'closed' });
+          controller.fetch(
+            IssueResource.move,
+            { number },
+            { state: targetState },
+          );
         },
-        () => moveItemIsReady(containerRef, number),
+        () => moveItemIsReady(containerRef, number, targetState),
       );
     },
     [measureUpdate, controller, containerRef],
@@ -210,10 +222,11 @@ function BenchmarkHarness() {
 
   const invalidateAndResolve = useCallback(
     async (number: number) => {
-      const issue = await getIssue(number);
-      if (issue) {
-        await patchIssue(number, { title: `${issue.title} (refetched)` });
-      }
+      const issue = FIXTURE_ISSUES_BY_NUMBER.get(number);
+      if (!issue) return;
+      const v = ++mutationCounter;
+      const expected = `${issue.title} (v${v})`;
+      await patchIssue(number, { title: expected });
       measureUpdate(
         () => {
           if (doubleListCount != null) {
@@ -231,7 +244,7 @@ function BenchmarkHarness() {
           const el = containerRef.current!.querySelector(
             `[data-issue-number="${number}"] [data-title]`,
           );
-          return el?.textContent?.includes('(refetched)') ?? false;
+          return el?.textContent === expected;
         },
       );
     },
@@ -242,7 +255,8 @@ function BenchmarkHarness() {
     (number: number) => {
       const issue = FIXTURE_ISSUES_BY_NUMBER.get(number);
       if (!issue) return;
-      const expected = `${issue.title} (updated)`;
+      const v = ++mutationCounter;
+      const expected = `${issue.title} (v${v})`;
       measureUpdate(
         () => {
           controller.fetch(
@@ -271,6 +285,11 @@ function BenchmarkHarness() {
     [measureUpdate, controller, containerRef],
   );
 
+  const resetStore = useCallback(
+    () => controller.resetEntireStore(),
+    [controller],
+  );
+
   registerAPI({
     updateEntity,
     updateUser,
@@ -280,6 +299,7 @@ function BenchmarkHarness() {
     deleteEntity,
     moveItem,
     triggerGC: () => benchGC.sweep(),
+    resetStore,
   });
 
   return (

@@ -13,20 +13,26 @@ export interface RunProfile {
   maxMeasurement: number;
   /** Stop early when 95% CI margin is within this % of the median. */
   targetMarginPct: number;
+  /** Sub-iterations per page visit; median of N is returned as one sample. */
+  opsPerRound: number;
 }
+
+const defaultOpsPerRound = parseInt(process.env.BENCH_OPS_PER_ROUND ?? '5', 10);
 
 export const RUN_CONFIG: Record<ScenarioSize, RunProfile> = {
   small: {
-    warmup: 3,
-    minMeasurement: 5,
-    maxMeasurement: process.env.CI ? 10 : 20,
-    targetMarginPct: process.env.CI ? 15 : 10,
+    warmup: 2,
+    minMeasurement: 3,
+    maxMeasurement: process.env.CI ? 15 : 12,
+    targetMarginPct: process.env.CI ? 5 : 10,
+    opsPerRound: defaultOpsPerRound,
   },
   large: {
     warmup: 1,
     minMeasurement: 3,
-    maxMeasurement: process.env.CI ? 6 : 10,
-    targetMarginPct: process.env.CI ? 20 : 15,
+    maxMeasurement: process.env.CI ? 12 : 6,
+    targetMarginPct: process.env.CI ? 8 : 15,
+    opsPerRound: defaultOpsPerRound,
   },
 };
 
@@ -117,6 +123,7 @@ const BASE_SCENARIOS: BaseScenario[] = [
     renderLimit: 100,
     preMountAction: 'mountSortedView',
     size: 'large',
+    opsPerRound: 9,
   },
   {
     nameSuffix: 'update-entity-multi-view',
@@ -135,6 +142,7 @@ const BASE_SCENARIOS: BaseScenario[] = [
     category: 'hotPath',
     size: 'large',
     renderLimit: 100,
+    opsPerRound: 5,
   },
   {
     nameSuffix: 'update-user-10000',

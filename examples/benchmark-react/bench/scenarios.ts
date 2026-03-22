@@ -134,9 +134,9 @@ const BASE_SCENARIOS: BaseScenario[] = [
     size: 'large',
   },
   {
-    nameSuffix: 'list-detail-switch',
+    nameSuffix: 'list-detail-switch-10',
     action: 'listDetailSwitch',
-    args: [1000],
+    args: [10, 1000],
     category: 'hotPath',
     size: 'large',
     renderLimit: 100,

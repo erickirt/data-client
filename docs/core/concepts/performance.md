@@ -11,13 +11,12 @@ import useBaseUrl from '@docusaurus/useBaseUrl';
 </head>
 
 
-[Normalized caching](./normalization.md) with entity-level memoization enables
+In addition to the data integirty benefits, [normalized caching](./normalization.md) with entity-level memoization enables
 significant performance gains for rich interactive applications.
-
 
 ## React rendering benchmarks
 
-Full rendering pipeline (fetch through paint) measured in a real browser via Playwright.
+Full rendering pipeline (fetch through DOM commit) measured in a real browser via Playwright.
 React baseline uses useEffect + useState from the React docs.
 
 <center>
@@ -39,7 +38,10 @@ sources={{
 - **Mutation Propagation**: One store write updates every view that references the entity.
 - **Scaling**: Mutations with 10k items in the list rendered.
 
-
+These benchmarks measure the framework's impact within the larger system. That
+makes them most useful as comparisons between approaches, rather than as
+absolute measurements of an application's overall performance. We use them to
+guide library optimizations and catch performance regressions over time.
 
 ## Normalization benchmarks
 

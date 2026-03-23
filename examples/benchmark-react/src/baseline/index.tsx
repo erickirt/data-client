@@ -17,14 +17,7 @@ import {
   sortByTitle,
 } from '@shared/data';
 import { setCurrentIssues } from '@shared/refStability';
-import {
-  fetchIssue,
-  fetchIssueList,
-  updateIssue,
-  updateUser as serverUpdateUser,
-  createIssue,
-  deleteIssue,
-} from '@shared/server';
+import { IssueResource, UserResource } from '@shared/resources';
 import type { Issue } from '@shared/types';
 import React, {
   useCallback,
@@ -45,7 +38,7 @@ function SortedListView({
 }) {
   const [issues, setIssues] = useState<Issue[] | null>(null);
   useEffect(() => {
-    fetchIssueList().then(setIssues);
+    IssueResource.getList().then(setIssues);
   }, [refetchKey]);
   const sorted = useMemo(() => (issues ? sortByTitle(issues) : []), [issues]);
   if (!sorted.length) return null;
@@ -65,7 +58,7 @@ function DetailView({
 }) {
   const [issue, setIssue] = useState<Issue | null>(null);
   useEffect(() => {
-    fetchIssue({ number }).then(setIssue);
+    IssueResource.get({ number }).then(setIssue);
   }, [number, refetchKey]);
   if (!issue) return null;
   return (
@@ -84,7 +77,7 @@ function PinnedCard({
 }) {
   const [issue, setIssue] = useState<Issue | null>(null);
   useEffect(() => {
-    fetchIssue({ number }).then(setIssue);
+    IssueResource.get({ number }).then(setIssue);
   }, [number, refetchKey]);
   if (!issue) return null;
   return <PinnedCardView issue={issue} />;
@@ -117,7 +110,7 @@ function ListView({
 }) {
   const [issues, setIssues] = useState<Issue[] | null>(null);
   useEffect(() => {
-    fetchIssueList({ count }).then(setIssues);
+    IssueResource.getList({ count }).then(setIssues);
   }, [count, refetchKey]);
   if (!issues) return null;
   setCurrentIssues(issues);
@@ -137,7 +130,7 @@ function StateListView({
 }) {
   const [issues, setIssues] = useState<Issue[] | null>(null);
   useEffect(() => {
-    fetchIssueList({ state, count }).then(setIssues);
+    IssueResource.getList({ state, count }).then(setIssues);
   }, [state, count, refetchKey]);
   if (!issues) return null;
   return (
@@ -198,10 +191,10 @@ function BenchmarkHarness() {
       if (!issue) return;
       const v = ++mutationCounter;
       measureUpdate(() =>
-        updateIssue({
-          number,
-          title: `${issue.title} (v${v})`,
-        }).then(triggerRefetch),
+        IssueResource.update(
+          { number },
+          { title: `${issue.title} (v${v})` },
+        ).then(triggerRefetch),
       );
     },
     [measureUpdate, triggerRefetch],
@@ -213,10 +206,9 @@ function BenchmarkHarness() {
       if (!user) return;
       const v = ++mutationCounter;
       measureUpdate(() =>
-        serverUpdateUser({
-          login,
-          name: `${user.name} (v${v})`,
-        }).then(triggerRefetch),
+        UserResource.update({ login }, { name: `${user.name} (v${v})` }).then(
+          triggerRefetch,
+        ),
       );
     },
     [measureUpdate, triggerRefetch],
@@ -225,13 +217,15 @@ function BenchmarkHarness() {
   const unshiftItem = useCallback(() => {
     const user = FIXTURE_USERS[0];
     measureUpdate(() =>
-      createIssue({ title: 'New Issue', user }).then(triggerRefetch),
+      IssueResource.create({ title: 'New Issue', user }).then(triggerRefetch),
     );
   }, [measureUpdate, triggerRefetch]);
 
   const deleteEntity = useCallback(
     (number: number) => {
-      measureUpdate(() => deleteIssue({ number }).then(triggerRefetch));
+      measureUpdate(() =>
+        IssueResource.delete({ number }).then(triggerRefetch),
+      );
     },
     [measureUpdate, triggerRefetch],
   );
@@ -243,7 +237,10 @@ function BenchmarkHarness() {
       const targetState = moveStateRef.current;
       moveStateRef.current = targetState === 'closed' ? 'open' : 'closed';
       measureUpdate(
-        () => updateIssue({ number, state: targetState }).then(triggerRefetch),
+        () =>
+          IssueResource.update({ number }, { state: targetState }).then(
+            triggerRefetch,
+          ),
         () => moveItemIsReady(containerRef, number, targetState),
       );
     },
@@ -257,7 +254,10 @@ function BenchmarkHarness() {
       const v = ++mutationCounter;
       const expected = `${issue.title} (v${v})`;
       measureUpdate(
-        () => updateIssue({ number, title: expected }).then(triggerRefetch),
+        () =>
+          IssueResource.update({ number }, { title: expected }).then(
+            triggerRefetch,
+          ),
         () => {
           const container = containerRef.current!;
           const listTitle = container.querySelector(

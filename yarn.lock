@@ -19197,10 +19197,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"locutus@npm:^2.0.11":
-  version: 2.0.39
-  resolution: "locutus@npm:2.0.39"
-  checksum: 10c0/96fa50951d50817777441bc761a07a2a583a3ac47ed8a5e23897b83c2979a968a68d9764887714288dcb730f700476308a0fe66fbe7ef85c9e2de43e7b713a32
+"locutus@npm:^3.0.9":
+  version: 3.0.25
+  resolution: "locutus@npm:3.0.25"
+  checksum: 10c0/32e936cc6defa3df3529bc937331141e2d2ff57345c5b268ab22092c35589871621ab95d4be5e0e42c52f38ff0447cd3d9e9848df6c1f04efa7dc995a5753b31
   languageName: node
   linkType: hard
 
@@ -20851,15 +20851,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"minimatch@npm:3.0.x":
-  version: 3.0.8
-  resolution: "minimatch@npm:3.0.8"
-  dependencies:
-    brace-expansion: "npm:^1.1.7"
-  checksum: 10c0/72b226f452dcfb5075255f53534cb83fc25565b909e79b9be4fad463d735cb1084827f7013ff41d050e77ee6e474408c6073473edd2fb72c2fd630cfb0acc6ad
-  languageName: node
-  linkType: hard
-
 "minimatch@npm:3.1.5, minimatch@npm:^3.0.3, minimatch@npm:^3.0.4, minimatch@npm:^3.0.5, minimatch@npm:^3.1.1, minimatch@npm:^3.1.2, minimatch@npm:^3.1.5":
   version: 3.1.5
   resolution: "minimatch@npm:3.1.5"
@@ -20878,7 +20869,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"minimatch@npm:^10.0.3, minimatch@npm:^10.2.1, minimatch@npm:^10.2.2":
+"minimatch@npm:^10, minimatch@npm:^10.0.3, minimatch@npm:^10.2.1, minimatch@npm:^10.2.2":
   version: 10.2.4
   resolution: "minimatch@npm:10.2.4"
   dependencies:
@@ -28423,17 +28414,17 @@ __metadata:
   languageName: node
   linkType: hard
 
-"twig@npm:^1.17.1":
-  version: 1.17.1
-  resolution: "twig@npm:1.17.1"
+"twig@npm:^2.0.0":
+  version: 2.0.0
+  resolution: "twig@npm:2.0.0"
   dependencies:
     "@babel/runtime": "npm:^7.8.4"
-    locutus: "npm:^2.0.11"
-    minimatch: "npm:3.0.x"
+    locutus: "npm:^3.0.9"
+    minimatch: "npm:^10"
     walk: "npm:2.3.x"
   bin:
     twigjs: bin/twigjs
-  checksum: 10c0/b932a935e9444fbdc2a0dbfc47fd4da14459f6011f4f65786b39c69a26278092707f5b05c92f7e55c88c2623039e9e9cd8a9ce1d6cf4010763d4a976d61c65dd
+  checksum: 10c0/db15587eed648d0f79887538ff6fa1152b138567dc3fc96b507910313134b0c1753ca42c90177d96f5a302fe9d655cefc70b75fff907acd477bb0772382b21f0
   languageName: node
   linkType: hard
 

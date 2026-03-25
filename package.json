@@ -113,7 +113,8 @@
     "node-gyp": ">=11.0.0",
     "react": "19.2.3",
     "react-dom": "19.2.3",
-    "react-test-renderer": "19.2.3"
+    "react-test-renderer": "19.2.3",
+    "twig": "^2.0.0"
   },
   "packageManager": "yarn@4.13.0",
   "prettier": {

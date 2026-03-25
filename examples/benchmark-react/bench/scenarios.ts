@@ -23,15 +23,15 @@ export const RUN_CONFIG: Record<ScenarioSize, RunProfile> = {
   small: {
     warmup: 2,
     minMeasurement: 3,
-    maxMeasurement: process.env.CI ? 15 : 12,
-    targetMarginPct: process.env.CI ? 5 : 10,
+    maxMeasurement: 15,
+    targetMarginPct: process.env.CI ? 4 : 6,
     opsPerRound: defaultOpsPerRound,
   },
   large: {
     warmup: 1,
     minMeasurement: 3,
-    maxMeasurement: process.env.CI ? 12 : 6,
-    targetMarginPct: process.env.CI ? 8 : 15,
+    maxMeasurement: 10,
+    targetMarginPct: process.env.CI ? 6 : 10,
     opsPerRound: defaultOpsPerRound,
   },
 };
@@ -50,13 +50,13 @@ export const CONVERGENT_CONFIG: Record<ScenarioSize, ConvergentProfile> = {
     warmup: 5,
     minMeasurement: 5,
     maxMeasurement: 50,
-    targetMarginPct: process.env.CI ? 5 : 8,
+    targetMarginPct: process.env.CI ? 4 : 6,
   },
   large: {
     warmup: 3,
     minMeasurement: 5,
     maxMeasurement: 40,
-    targetMarginPct: process.env.CI ? 8 : 12,
+    targetMarginPct: process.env.CI ? 6 : 10,
   },
 };
 

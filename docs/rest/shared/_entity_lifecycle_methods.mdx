@@ -318,7 +318,7 @@ static mergeMetaWithStore(
 
 ### static queryKey(args, queryKey, getEntity, getIndex): pk? {#queryKey}
 
-This method enables `Entities` to be [Queryable](./schema.md#queryable) - allowing store access without an endpoint.
+This method enables `Entities` to be [Queryable](/rest/api/schema#queryable) - allowing store access without an endpoint.
 
 Overriding can allow customization or disabling of this behavior altogether.
 
@@ -361,7 +361,7 @@ Called when denormalizing an entity. This will create an instance of this class
 if it is deemed 'valid'.
 
 `undefined` return will result in [Invalid expiry status](/docs/concepts/expiry-policy#expiry-status),
-like [Invalidate](./Invalidate.md).
+like [Invalidate](/rest/api/Invalidate).
 
 [`Invalid`](/docs/concepts/expiry-policy#expiry-status) expiry generally means hooks will enter a loading state and attempt a new fetch.
 

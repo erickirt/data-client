@@ -1,6 +1,6 @@
 ---
-'@data-client/react': major
-'@data-client/vue': major
+'@data-client/react': minor
+'@data-client/vue': minor
 ---
 
 BREAKING CHANGE: [useFetch()](/docs/api/useFetch) always returns a stable promise with a `.resolved` property, even when data is already cached.

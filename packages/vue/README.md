@@ -21,10 +21,10 @@ Schema driven. Zero updater functions.
 [![bundle size](https://img.shields.io/bundlephobia/minzip/@data-client/vue?style=flat-square)](https://bundlephobia.com/result?p=@data-client/vue)
 [![npm version](https://img.shields.io/npm/v/@data-client/vue.svg?style=flat-square)](https://www.npmjs.com/package/@data-client/vue)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat-square)](http://makeapullrequest.com)
-[![Codegen GPT](https://img.shields.io/badge/chatGPT-74aa9c?style=flat-square&logo=openai&logoColor=white)](https://chatgpt.com/g/g-682609591fe48191a6850901521b4e4b-typescript-rest-codegen)
+[![Agent Skills](https://img.shields.io/badge/Agent_Skills-cc785c?style=flat-square&logo=claude&logoColor=white)](https://skills.sh/reactive/data-client)
 [![Chat](https://img.shields.io/discord/768254430381735967.svg?style=flat-square&colorB=758ED3)](https://discord.gg/35nb8Mz)
 
-**[📖Read The Docs](https://dataclient.io/docs)** &nbsp;|&nbsp; [🏁Getting Started](https://dataclient.io/docs/getting-started/installation) &nbsp;|&nbsp; [🤖Codegen](https://chatgpt.com/g/g-682609591fe48191a6850901521b4e4b-typescript-rest-codegen) &nbsp;|&nbsp; [🎮Todo Demo](https://stackblitz.com/github/reactive/data-client/tree/master/examples/vue-todo-app?file=src%2Fcomponents%2FTodoListContent.vue)
+**[📖Read The Docs](https://dataclient.io/docs)** &nbsp;|&nbsp; [🏁Getting Started](https://dataclient.io/docs/getting-started/installation) &nbsp;|&nbsp; [🤖Agent Skills](https://skills.sh/reactive/data-client) &nbsp;|&nbsp; [🎮Todo Demo](https://stackblitz.com/github/reactive/data-client/tree/master/examples/vue-todo-app?file=src%2Fcomponents%2FTodoListContent.vue)
 
 </div>
 

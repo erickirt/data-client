@@ -341,12 +341,12 @@ When using TypeScript (optional), version 4.0 or above is required.
 
 <p>
 <center>
-<Link className="button button--secondary button--sm" to="https://chatgpt.com/g/g-682609591fe48191a6850901521b4e4b-typescript-rest-codegen"><img src="/img/gpt.svg" alt="Codegen GPT" style={{
-          height: '1em',              // Match font size
-          verticalAlign: '-0.125em',  // Fine-tune: try -0.125em or 'middle'
-          display: 'inline',          // Inline with text
+<Link className="button button--secondary button--sm" to="https://skills.sh/reactive/data-client"><img src="/img/anthropic.svg" alt="Agent Skills" style={{
+          height: '1em',
+          verticalAlign: '-0.125em',
+          display: 'inline',
         }}
-/> Codegen</Link>&nbsp;
+/> Agent Skills</Link>&nbsp;
 <Link className="button button--secondary button--sm" to="https://github.com/reactive/data-client/blob/master/.cursor/skills/data-client-rest/SKILL.md"><img src="/img/copilot.svg" alt="Github Copilot" style={{
           height: '1em',              // Match font size
           verticalAlign: '-0.125em',  // Fine-tune: try -0.125em or 'middle'

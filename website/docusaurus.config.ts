@@ -479,10 +479,10 @@ const config: Config = {
           'aria-label': 'Discord chat support',
         },
         {
-          href: 'https://chatgpt.com/g/g-682609591fe48191a6850901521b4e4b-typescript-rest-codegen',
+          href: 'https://skills.sh/reactive/data-client',
           position: 'right',
-          className: 'header-gpt-link',
-          'aria-label': 'Codegeneration with ChatGPT',
+          className: 'header-anthropic-link',
+          'aria-label': 'Agent Skills',
         },
       ],
     },
@@ -578,8 +578,8 @@ const config: Config = {
               to: 'https://www.npmjs.com/package/@data-client/react',
             },
             {
-              label: 'REST Codegen',
-              to: 'https://chatgpt.com/g/g-682609591fe48191a6850901521b4e4b-typescript-rest-codegen',
+              label: 'Agent Skills',
+              to: 'https://skills.sh/reactive/data-client',
             },
             /*{
               html: `<iframe

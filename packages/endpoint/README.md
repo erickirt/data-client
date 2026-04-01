@@ -5,13 +5,13 @@
 [![bundle size](https://img.shields.io/bundlephobia/minzip/@data-client/endpoint?style=flat-square)](https://bundlephobia.com/result?p=@data-client/endpoint)
 [![npm version](https://img.shields.io/npm/v/@data-client/endpoint.svg?style=flat-square)](https://www.npmjs.com/package/@data-client/endpoint)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat-square)](http://makeapullrequest.com)
-[![Codegen GPT](https://img.shields.io/badge/chatGPT-74aa9c?style=flat-square&logo=openai&logoColor=white)](https://chatgpt.com/g/g-682609591fe48191a6850901521b4e4b-typescript-rest-codegen)
+[![Agent Skills](https://img.shields.io/badge/Agent_Skills-cc785c?style=flat-square&logo=claude&logoColor=white)](https://skills.sh/reactive/data-client)
 
 Declarative, strongly typed, reusable network definitions for networking libraries.
 
 <div align="center">
 
-**[📖Read The Docs](https://dataclient.io/docs/guides/custom-protocol) &nbsp;|&nbsp; [🤖Codegen](https://chatgpt.com/g/g-682609591fe48191a6850901521b4e4b-typescript-rest-codegen)**
+**[📖Read The Docs](https://dataclient.io/docs/guides/custom-protocol) &nbsp;|&nbsp; [🤖Agent Skills](https://skills.sh/reactive/data-client)**
 
 </div>
 

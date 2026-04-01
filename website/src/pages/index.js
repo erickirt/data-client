@@ -71,18 +71,18 @@ function HomepageEnder() {
         <div className={styles.buttons}>
           <Link
             className="button button--secondary"
-            to="https://chatgpt.com/g/g-682609591fe48191a6850901521b4e4b-typescript-rest-codegen"
+            to="https://skills.sh/reactive/data-client"
           >
             <img
-              src="/img/gpt.svg"
-              alt="Codegen GPT"
+              src="/img/anthropic.svg"
+              alt="Agent Skills"
               style={{
-                height: '1em', // Match font size
-                verticalAlign: '-0.125em', // Fine-tune: try -0.125em or 'middle'
-                display: 'inline', // Inline with text
+                height: '1em',
+                verticalAlign: '-0.125em',
+                display: 'inline',
               }}
             />{' '}
-            Codegen
+            Agent Skills
           </Link>
           <Link
             className="button button--primary"

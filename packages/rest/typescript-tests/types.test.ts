@@ -1445,6 +1445,21 @@ it('should handle more open ended type definitions', () => {
   withNewSearch.getPage({ blob: 'ho' });
 };
 
+// --- extend() keeps body required when `method` was omitted (inferred POST) ---
+() => {
+  const create = new RestEndpoint({
+    path: '/items',
+    schema: Article,
+    body: {} as { title: string },
+  });
+  const withNewPath = create.extend({
+    path: '/items/:id',
+  });
+  () => withNewPath({ id: '1' }, { title: 'x' });
+  // @ts-expect-error - body still required after extend (instance `method` matches fetch)
+  () => withNewPath({ id: '1' });
+};
+
 // --- resource() with paginationField ---
 () => {
   const UserResource = resource({
@@ -1678,6 +1693,7 @@ it('should handle more open ended type definitions', () => {
 // === RestEndpoint subclass with O=any (PathArgs<any> regression) ===
 it('should allow concrete body types when subclassing RestEndpoint with O=any', () => {
   class AuthdEndpoint<O extends RestGenerics = any> extends RestEndpoint<O> {
+    urlPrefix = 'https://api.example.com';
     getRequestInit(body: any) {
       return super.getRequestInit(body);
     }
@@ -1719,4 +1735,250 @@ it('should allow concrete body types when subclassing RestEndpoint with O=any', 
     path: '/users/:id/profile',
   });
   () => repath({ id: 5 }, { name: 'alice' });
+
+  // Static path (no params) with POST body
+  const createUser = new AuthdEndpoint({
+    method: 'POST',
+    path: '/users',
+    schema: User,
+    body: {} as { username: string; email: string },
+    getOptimisticResponse(snap, { username }) {
+      return { id: 5 };
+    },
+  });
+  () => createUser({ username: 'bob', email: 'bob@test.com' });
+  // @ts-expect-error - no second argument for static path POST
+  () => createUser({ username: 'bob' }, { email: 'extra' });
+
+  // Static path GET (no params, no body)
+  const listUsers = new AuthdEndpoint({
+    path: '/users',
+    schema: User,
+  });
+  () => listUsers();
+  // @ts-expect-error - static path takes no args
+  () => listUsers({ id: 5 });
+
+  // === Widened path (`as string`) with explicit body ===
+  // Simulates TypeScript partial inference widening path literal to `string`
+  // (the RestGenerics constraint). This happens when TS can't fully infer O
+  // through the complex conditional constructor types. Usually due to hitting the depth-limit.
+
+  // --- getOptimisticResponse in constructor ---
+  const widenedGet = new AuthdEndpoint({
+    path: '/users' as string,
+    schema: User,
+    body: {} as { phrase: string },
+    getOptimisticResponse(snap, body) {
+      return body;
+    },
+  });
+  // @ts-expect-error - body strongly defined means it is required
+  widenedGet();
+  widenedGet({ phrase: 'hello' });
+
+  // Explicit `searchParams: undefined` must use SoftPathArgs like the other
+  // constructor branches (not PathArgs<string>), so callbacks stay callable.
+  const widenedUndefSearchParams = new AuthdEndpoint({
+    path: '/users' as string,
+    searchParams: undefined,
+    schema: User,
+    body: {} as { phrase: string },
+    getOptimisticResponse(snap, body) {
+      return body;
+    },
+  });
+  // @ts-expect-error - body strongly defined means it is required
+  widenedUndefSearchParams();
+  widenedUndefSearchParams({ phrase: 'hello' });
+
+  // --- key() in constructor ---
+  const widenedKey = new AuthdEndpoint({
+    path: '/items' as string,
+    schema: User,
+    body: {} as { tag: string },
+    key(body) {
+      return `items-${body.tag}`;
+    },
+  });
+  // @ts-expect-error
+  widenedKey();
+  widenedKey({ tag: 'a' });
+
+  // --- url() in constructor ---
+  const widenedUrl = new AuthdEndpoint({
+    path: '/items' as string,
+    schema: User,
+    body: {} as { tag: string },
+    url(body) {
+      return `/items?tag=${body.tag}`;
+    },
+  });
+  // @ts-expect-error
+  widenedUrl();
+  widenedUrl({ tag: 'b' });
+
+  // --- process() in constructor ---
+  const widenedProcess = new AuthdEndpoint({
+    path: '/items' as string,
+    schema: User,
+    body: {} as { tag: string },
+    process(value, body) {
+      body.tag;
+      return value;
+    },
+  });
+  // @ts-expect-error
+  widenedProcess();
+  widenedProcess({ tag: 'c' });
+
+  // --- widened path with params + body (PUT) ---
+  const widenedPut = new AuthdEndpoint({
+    path: '/items/:id' as string,
+    schema: User,
+    method: 'PUT',
+    body: {} as { name: string },
+    getOptimisticResponse(snap, ...args) {
+      return args[args.length - 1];
+    },
+  });
+  // @ts-expect-error - body required even when path is widened
+  widenedPut();
+
+  // --- widened path with searchParams + body ---
+  const widenedSearch = new AuthdEndpoint({
+    path: '/search' as string,
+    schema: User,
+    method: 'POST',
+    sideEffect: false,
+    searchParams: {} as { q?: string },
+    body: {} as { filters: string[] },
+    getOptimisticResponse(snap, ...args) {
+      return args[args.length - 1];
+    },
+  });
+  widenedSearch({ filters: ['a'] });
+  widenedSearch({ q: 'hi' }, { filters: ['a'] });
+
+  // --- extend on a widened-path endpoint ---
+  const widenedExtended = widenedGet.extend({
+    dataExpiryLength: 5000,
+  });
+  // @ts-expect-error - body still required after extend
+  widenedExtended();
+  widenedExtended({ phrase: 'hi' });
+
+  // --- extend overriding key on widened endpoint ---
+  widenedGet.extend({
+    key(...args) {
+      return `custom-${JSON.stringify(args)}`;
+    },
+  });
+});
+
+// === resource() with AuthdEndpoint subclass (Endpoint option) ===
+it('should type resource using RestEndpoint subclass with O=any', () => {
+  class AuthdEndpoint<O extends RestGenerics = any> extends RestEndpoint<O> {
+    urlPrefix = 'https://api.example.com';
+    getRequestInit(body: any) {
+      return super.getRequestInit(body);
+    }
+  }
+
+  // --- resource with subclass Endpoint ---
+  const UserRes = resource({
+    path: '/users/:id',
+    schema: User,
+    Endpoint: AuthdEndpoint,
+  });
+  () => UserRes.get({ id: 5 });
+  () => UserRes.getList();
+  () => UserRes.update({ id: 5 }, { username: 'bob' });
+  () => UserRes.partialUpdate({ id: 5 }, { email: 'a@b.com' });
+  () => UserRes.delete({ id: 5 });
+
+  // --- resource.extend('get', { getOptimisticResponse }) ---
+  const ExtGet = UserRes.extend('get', {
+    getOptimisticResponse(snap, params) {
+      params.id;
+      // @ts-expect-error
+      params.nothere;
+      return { id: params.id };
+    },
+  });
+  () => ExtGet.get({ id: 5 });
+
+  // --- resource.extend('update', { getOptimisticResponse }) ---
+  const ExtUpdate = UserRes.extend('update', {
+    getOptimisticResponse(snap, params, body) {
+      params.id;
+      // @ts-expect-error
+      params.nothere;
+      return { id: params.id };
+    },
+  });
+  () => ExtUpdate.update({ id: 5 }, { username: 'bob' });
+
+  // --- resource.extend('partialUpdate', { getOptimisticResponse }) ---
+  const ExtPartial = UserRes.extend('partialUpdate', {
+    getOptimisticResponse(snap, params, body) {
+      params.id;
+      return { id: params.id };
+    },
+  });
+  () => ExtPartial.partialUpdate({ id: 5 }, { email: 'new@e.com' });
+
+  // --- resource.extend('delete', { getOptimisticResponse }) ---
+  const ExtDelete = UserRes.extend('delete', {
+    getOptimisticResponse(snap, params) {
+      params.id;
+      return params;
+    },
+  });
+  () => ExtDelete.delete({ id: 5 });
+
+  // --- resource.extend('getList', { key }) ---
+  const ExtListKey = UserRes.extend('getList', {
+    key(...args) {
+      return `custom-${JSON.stringify(args)}`;
+    },
+  });
+  () => ExtListKey.getList();
+
+  // --- resource.extend object form preserves types ---
+  const ExtObj = UserRes.extend({
+    update: {
+      getOptimisticResponse(snap, params, body) {
+        params.id;
+        return { id: params.id, ...body };
+      },
+    },
+  });
+  () => ExtObj.update({ id: 5 }, { username: 'bob' });
+
+  // --- resource with searchParams + extend getList key ---
+  const ArticleRes = resource({
+    path: '/articles/:id',
+    schema: Article,
+    searchParams: {} as { category?: string },
+  });
+
+  const ExtArticle = ArticleRes.extend('getList', {
+    key(...args) {
+      return `articles-${JSON.stringify(args)}`;
+    },
+  });
+  () => ExtArticle.getList();
+  () => ExtArticle.getList({ category: 'tech' });
+
+  // --- resource.extend function form ---
+  const FnExtended = UserRes.extend(base => ({
+    current: base.get.extend({
+      path: '/users/current',
+      getOptimisticResponse(snap) {
+        return snap;
+      },
+    }),
+  }));
+  () => FnExtended.current();
 });

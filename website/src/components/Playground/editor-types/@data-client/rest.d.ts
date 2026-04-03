@@ -1333,6 +1333,9 @@ type KeyName<K extends string> = CleanKey<K extends `*${infer N}}` ? N : K exten
 type KeyVal<K extends string> = K extends `*${string}` ? string[] : string | number;
 /** Parameters for a given path */
 type PathArgs<S extends string> = unknown extends S ? any : PathKeys<S> extends never ? unknown : KeysToArgs<PathKeys<S>>;
+/** Like {@link PathArgs} but widened `path: string` collapses to `unknown`,
+ *  preventing `(params, body) | (body)` union overloads in ParamFetchWithBody. */
+type SoftPathArgs<P extends string> = unknown extends P ? any : string extends P ? unknown : PathArgs<P>;
 /** Computes the union of keys for a path string */
 type PathKeys<S extends string> = string extends S ? string : S extends `${infer A}\\${':' | '*' | '}'}${infer B}` ? PathKeys<A> | PathKeys<B> : Splits<S, ':'> | Splits<S, '*'>;
 type Splits<S extends string, M extends ':' | '*'> = S extends `${string}${M}${infer K}${M}${infer R}` ? Splits<`${M}${K}`, M> | Splits<`${M}${R}`, M> : S extends (`${string}${M}${infer K}${'/' | '\\' | '%' | '&' | '*' | ':' | '{' | ';' | ',' | '!' | '@'}${infer R}`) ? Splits<`${M}${K}`, M> | Splits<R, M> : S extends `${string}${M}${infer K}` ? M extends '*' ? `*${K}` : K : never;
@@ -1632,6 +1635,13 @@ type MoveEndpoint<F extends FetchFunction = FetchFunction, S extends Schema | un
 }> = RestInstanceBase<RestFetch<PathArgs<Exclude<O['path'], undefined>>, O['body'], ResolveType<F>>, S, true, Omit<O, 'method' | 'searchParams'> & {
     method: 'PATCH';
 }>;
+/** When `method` is omitted from `O`, infer it (must stay aligned with `OptionsToBodyArgument`). */
+type InferRestMethodWhenOmitted<O extends RestGenerics> = O extends {
+    sideEffect: true;
+} ? 'POST' : 'body' extends keyof O ? [
+    O['body']
+] extends [undefined] ? 'GET' : 'POST' : 'GET';
+type MethodArgForBodyInference<O extends RestGenerics> = 'method' extends keyof O ? O['method'] : InferRestMethodWhenOmitted<O>;
 type OptionsToAdderBodyArgument<O extends {
     body?: any;
 }> = 'body' extends keyof O ? O['body'] : any;
@@ -1665,23 +1675,17 @@ interface RestEndpointOptions<F extends FetchFunction = FetchFunction, S extends
     url?(...args: Parameters<F>): string;
     update?: EndpointUpdateFunction<F, S>;
 }
-type RestEndpointConstructorOptions<O extends RestGenerics = any> = RestEndpointOptions<RestFetch<'searchParams' extends keyof O ? [
+type RestEndpointConstructorOptions<O extends RestGenerics = any> = RestEndpointOptions<RestFetch<unknown extends O ? any : 'searchParams' extends keyof O ? [
     O['searchParams']
-] extends [undefined] ? PathArgs<O['path']> : O['searchParams'] & PathArgs<O['path']> : PathArgs<O['path']>, OptionsToBodyArgument<O, 'method' extends keyof O ? O['method'] : O extends {
-    sideEffect: true;
-} ? 'POST' : 'GET'>, O['process'] extends {} ? ReturnType<O['process']> : any>, O['schema']>;
+] extends [undefined] ? SoftPathArgs<O['path']> : O['searchParams'] & SoftPathArgs<O['path']> : SoftPathArgs<O['path']>, OptionsToBodyArgument<O, MethodArgForBodyInference<O>>, O['process'] extends {} ? ReturnType<O['process']> : any>, O['schema']>;
 /** Simplifies endpoint definitions that follow REST patterns
  *
  * @see https://dataclient.io/rest/api/RestEndpoint
  */
-interface RestEndpoint$1<O extends RestGenerics = any> extends RestInstance<RestFetch<'searchParams' extends keyof O ? [
+interface RestEndpoint$1<O extends RestGenerics = any> extends RestInstance<RestFetch<unknown extends O ? any : 'searchParams' extends keyof O ? [
     O['searchParams']
-] extends [undefined] ? PathArgs<O['path']> : O['searchParams'] & PathArgs<O['path']> : PathArgs<O['path']>, OptionsToBodyArgument<O, 'method' extends keyof O ? O['method'] : O extends {
-    sideEffect: true;
-} ? 'POST' : 'GET'>, O['process'] extends {} ? ReturnType<O['process']> : any>, 'schema' extends keyof O ? O['schema'] : undefined, 'sideEffect' extends keyof O ? Extract<O['sideEffect'], boolean | undefined> : MethodToSide<O['method']>, 'method' extends keyof O ? O : O & {
-    method: O extends {
-        sideEffect: true;
-    } ? 'POST' : 'GET';
+] extends [undefined] ? PathArgs<O['path']> : O['searchParams'] & PathArgs<O['path']> : PathArgs<O['path']>, OptionsToBodyArgument<O, MethodArgForBodyInference<O>>, O['process'] extends {} ? ReturnType<O['process']> : any>, 'schema' extends keyof O ? O['schema'] : undefined, 'sideEffect' extends keyof O ? Extract<O['sideEffect'], boolean | undefined> : MethodToSide<MethodArgForBodyInference<O>>, 'method' extends keyof O ? O : O & {
+    method: InferRestMethodWhenOmitted<O>;
 }> {
 }
 interface RestEndpointConstructor {

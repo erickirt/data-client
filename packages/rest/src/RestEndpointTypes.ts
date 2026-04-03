@@ -11,7 +11,7 @@ import {
   OptionsToBodyArgument,
   OptionsToFunction,
 } from './OptionsToFunction.js';
-import { PathArgs } from './pathTypes.js';
+import { PathArgs, SoftPathArgs } from './pathTypes.js';
 import { EndpointUpdateFunction } from './RestEndpointTypeHelp.js';
 
 export interface RestInstanceBase<
@@ -520,6 +520,18 @@ type OptionsBodyDefault<O extends RestGenerics> =
   : O['method'] extends 'POST' | 'PUT' | 'PATCH' ? O & { body: any }
   : O & { body: undefined };
 
+/** When `method` is omitted from `O`, infer it (must stay aligned with `OptionsToBodyArgument`). */
+type InferRestMethodWhenOmitted<O extends RestGenerics> =
+  O extends { sideEffect: true } ? 'POST'
+  : 'body' extends keyof O ?
+    [O['body']] extends [undefined] ?
+      'GET'
+    : 'POST'
+  : 'GET';
+
+type MethodArgForBodyInference<O extends RestGenerics> =
+  'method' extends keyof O ? O['method'] : InferRestMethodWhenOmitted<O>;
+
 type OptionsToAdderBodyArgument<O extends { body?: any }> =
   'body' extends keyof O ? O['body'] : any;
 
@@ -558,20 +570,21 @@ export interface RestEndpointOptions<
   update?: EndpointUpdateFunction<F, S>;
 }
 
+// When subclassing RestEndpoint with `O extends RestGenerics = any`, O defaults
+// to `any`. The `unknown extends O ? any` guard catches O=any before it reaches
+// PathArgs (see #3782). SoftPathArgs collapses PathArgs<string> to `unknown`
+// when a concrete body is present, preventing union overloads that break
+// getOptimisticResponse callbacks. Method inference treats explicit body as POST.
 export type RestEndpointConstructorOptions<O extends RestGenerics = any> =
   RestEndpointOptions<
     RestFetch<
-      'searchParams' extends keyof O ?
+      unknown extends O ? any
+      : 'searchParams' extends keyof O ?
         [O['searchParams']] extends [undefined] ?
-          PathArgs<O['path']>
-        : O['searchParams'] & PathArgs<O['path']>
-      : PathArgs<O['path']>,
-      OptionsToBodyArgument<
-        O,
-        'method' extends keyof O ? O['method']
-        : O extends { sideEffect: true } ? 'POST'
-        : 'GET'
-      >,
+          SoftPathArgs<O['path']>
+        : O['searchParams'] & SoftPathArgs<O['path']>
+      : SoftPathArgs<O['path']>,
+      OptionsToBodyArgument<O, MethodArgForBodyInference<O>>,
       O['process'] extends {} ? ReturnType<O['process']>
       : any /*Denormalize<O['schema']>*/
     >,
@@ -586,26 +599,22 @@ export interface RestEndpoint<
   O extends RestGenerics = any,
 > extends RestInstance<
   RestFetch<
-    'searchParams' extends keyof O ?
+    unknown extends O ? any
+    : 'searchParams' extends keyof O ?
       [O['searchParams']] extends [undefined] ?
         PathArgs<O['path']>
       : O['searchParams'] & PathArgs<O['path']>
     : PathArgs<O['path']>,
-    OptionsToBodyArgument<
-      O,
-      'method' extends keyof O ? O['method']
-      : O extends { sideEffect: true } ? 'POST'
-      : 'GET'
-    >,
+    OptionsToBodyArgument<O, MethodArgForBodyInference<O>>,
     O['process'] extends {} ? ReturnType<O['process']>
     : any /*Denormalize<O['schema']>*/
   >,
   'schema' extends keyof O ? O['schema'] : undefined,
   'sideEffect' extends keyof O ? Extract<O['sideEffect'], boolean | undefined>
-  : MethodToSide<O['method']>,
+  : MethodToSide<MethodArgForBodyInference<O>>,
   'method' extends keyof O ? O
   : O & {
-      method: O extends { sideEffect: true } ? 'POST' : 'GET';
+      method: InferRestMethodWhenOmitted<O>;
     }
 > {}
 

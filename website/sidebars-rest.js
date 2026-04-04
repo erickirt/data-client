@@ -95,5 +95,16 @@ module.exports = {
       collapsed: false,
       items: require('./sidebars-endpoint.json').slice(1),
     },
+    {
+      type: 'category',
+      collapsed: true,
+      label: 'Migration Guides',
+      items: [
+        {
+          type: 'doc',
+          id: 'guides/axios-migration',
+        },
+      ],
+    },
   ],
 };

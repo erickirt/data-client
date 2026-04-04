@@ -3,9 +3,13 @@ import TabItem from '@theme/TabItem';
 import Tabs from '@theme/Tabs';
 import React from 'react';
 
-export default function SkillTabs({ repo = 'reactive/data-client', skill }) {
-  const skillFlag = skill ? ` --skill ${skill}` : '';
-  const catalogUrl = `https://skills.sh/${repo}`;
+export default function SkillTabs({
+  repo = 'reactive/data-client',
+  skill,
+  skills,
+}) {
+  const allSkills = skills ?? (skill ? [skill] : []);
+  const skillFlag = allSkills.map(s => ` --skill ${s}`).join('');
   return (
     <>
       <Tabs
@@ -29,11 +33,6 @@ export default function SkillTabs({ repo = 'reactive/data-client', skill }) {
           </CodeBlock>
         </TabItem>
       </Tabs>
-      <p style={{ marginTop: '0.5rem', marginBottom: 0 }}>
-        <a href={catalogUrl} target="_blank" rel="noopener noreferrer">
-          Browse all skills on skills.sh
-        </a>
-      </p>
     </>
   );
 }

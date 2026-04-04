@@ -521,6 +521,10 @@ const config: Config = {
           title: 'Community',
           items: [
             {
+              label: 'Github',
+              to: 'https://github.com/reactive/data-client',
+            },
+            {
               label: 'Discord',
               href: 'https://discord.gg/35nb8Mz',
             },
@@ -535,10 +539,6 @@ const config: Config = {
             {
               label: 'Ideas',
               href: 'https://github.com/reactive/data-client/discussions/categories/ideas',
-            },
-            {
-              label: 'Agent Skills',
-              href: 'https://skills.sh/reactive/data-client',
             },
             // {
             //   label: 'Stack Overflow',
@@ -556,10 +556,6 @@ const config: Config = {
             {
               label: 'Blog',
               to: '/blog',
-            },
-            {
-              label: 'Github',
-              to: 'https://github.com/reactive/data-client',
             },
             {
               label: 'Demo (Github)',

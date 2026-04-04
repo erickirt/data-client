@@ -338,7 +338,7 @@ When using TypeScript (optional), version 4.0 or above is required.
 
 :::
 
-## REST skills
+## REST Agent Skills
 
 import SkillTabs from '@site/src/components/SkillTabs';
 

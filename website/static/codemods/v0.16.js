@@ -21,7 +21,7 @@ const DATA_CLIENT_PACKAGES = new Set([
 
 function transformPathString(s) {
   // :name(\d+) → :name  (handles nested non-capturing groups)
-  s = s.replace(/:(\w+)\((?:[^()]*|\([^()]*\))*\)/g, ':$1');
+  s = s.replace(/:(\w+)\([^()]*(?:\([^()]*\)[^()]*)*\)/g, ':$1');
   // {group}? → {group}
   s = s.replace(/(\{[^}]+\})\?/g, '$1');
   // /:name? → {/:name}  (also handles - . ~ prefixes)

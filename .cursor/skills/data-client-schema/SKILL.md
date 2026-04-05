@@ -93,14 +93,24 @@ export const EventResource = resource({
 
 ---
 
-## 5. Best Practices & Notes
+## 5. Supplementary Endpoints (enrich existing entities)
+
+When an endpoint returns partial or differently-shaped data for an entity already in cache
+(e.g., a metadata endpoint, a stats endpoint, a lazy-load expansion endpoint),
+use the **same Entity** as the schema — don't create a wrapper entity.
+
+See [partial-entities](references/partial-entities.md) for patterns and examples.
+
+---
+
+## 6. Best Practices & Notes
 
 - Always set up `schema` on every resource/entity/collection for normalization
 - Normalize deeply nested or relational data by defining proper schemas
 - Use `Entity.schema` for client-side joins
 - Use `Denormalize<>` type from rest/endpoint/graphql instead of InstanceType<>. This will handle all schemas like Unions, not just Entity.
 
-## 6. Common Mistakes to Avoid
+## 7. Common Mistakes to Avoid
 
 - Don't forget to use `fromJS()` or assign default properties for class fields
 - Manually merging or 'enriching' data; instead use `Entity.schema` for client-side joins

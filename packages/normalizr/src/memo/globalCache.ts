@@ -39,7 +39,9 @@ export default class GlobalCache implements Cache {
     computeValue: (localCacheKey: Map<string, any>) => void,
   ): object | undefined | typeof INVALID {
     const key = schema.key;
-    const { localCacheKey, cycleCacheKey } = this.getCacheKey(key);
+    // cycleCache is deferred to the branch that actually needs it
+    // to avoid unnecessary allocations.
+    const localCacheKey = this.getOrCreateLocalCache(key);
 
     if (!localCacheKey.get(pk)) {
       const globalCache: WeakDependencyMap<
@@ -54,12 +56,17 @@ export default class GlobalCache implements Cache {
         localCacheKey.set(pk, cacheValue.value);
         // TODO: can we store the cache values instead of tracking *all* their sources?
         // this is only used for setting endpoints cache correctly. if we got this far we will def need to set as we would have already tried getting it
-        this.dependencies.push(...cacheValue.dependencies);
+        // Indexed loop avoids spread-into-push overhead for large dep arrays
+        const cdeps = cacheValue.dependencies;
+        for (let i = 0; i < cdeps.length; i++) {
+          this.dependencies.push(cdeps[i]);
+        }
         return cacheValue.value;
       }
       // if we don't find in denormalize cache then do full denormalize
       else {
         const trackingIndex = this.dependencies.length;
+        const cycleCacheKey = this.getOrCreateCycleCache(key);
         cycleCacheKey.set(pk, trackingIndex);
         this.dependencies.push({ path: { key, pk }, entity });
 
@@ -85,8 +92,9 @@ export default class GlobalCache implements Cache {
         }
       }
     } else {
+      const cycleCacheKey = this.cycleCache.get(key);
       // cycle detected
-      if (cycleCacheKey.has(pk)) {
+      if (cycleCacheKey?.has(pk)) {
         this.cycleIndex = cycleCacheKey.get(pk)!;
       } else {
         // with no cycle, globalCacheEntry will have already been set
@@ -96,16 +104,22 @@ export default class GlobalCache implements Cache {
     return localCacheKey.get(pk);
   }
 
-  private getCacheKey(key: string) {
-    if (!this.localCache.has(key)) {
-      this.localCache.set(key, new Map());
+  private getOrCreateLocalCache(key: string): Map<string, any> {
+    let localCacheKey = this.localCache.get(key);
+    if (!localCacheKey) {
+      localCacheKey = new Map();
+      this.localCache.set(key, localCacheKey);
     }
-    if (!this.cycleCache.has(key)) {
-      this.cycleCache.set(key, new Map());
+    return localCacheKey;
+  }
+
+  private getOrCreateCycleCache(key: string): Map<string, number> {
+    let cycleCacheKey = this.cycleCache.get(key);
+    if (!cycleCacheKey) {
+      cycleCacheKey = new Map();
+      this.cycleCache.set(key, cycleCacheKey);
     }
-    const localCacheKey = this.localCache.get(key)!;
-    const cycleCacheKey = this.cycleCache.get(key)!;
-    return { localCacheKey, cycleCacheKey };
+    return cycleCacheKey;
   }
 
   /** Cache varies based on input (=== aka reference) */

@@ -102,7 +102,7 @@
     "react-native-screens": "^4.1.0",
     "react-test-renderer": "19.2.3",
     "rimraf": "^6.0.0",
-    "rollup": "4.59.0",
+    "rollup": "4.60.1",
     "temporal-polyfill": "^0.3.0",
     "typescript": "6.0.2",
     "whatwg-fetch": "3.0.0"
@@ -115,7 +115,8 @@
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "react-test-renderer": "19.2.3",
-    "twig": "^2.0.0"
+    "twig": "^2.0.0",
+    "webpackbar": "^7.0.0"
   },
   "packageManager": "yarn@4.13.0",
   "prettier": {

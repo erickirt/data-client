@@ -25,7 +25,7 @@ available, and re-suspending on [invalidation](./Controller.md#invalidate).
 
 ### Parallel data loading
 
-Since `useFetch()` and `use()` are separate calls, multiple fetches start in parallel — even when the first `use()` suspends. See the [parallel fetches example](#parallel-fetches) below.
+Since `useFetch()` and `use()` are separate calls, multiple fetches start in parallel — even when the first `use()` suspends. See the [parallel fetches example](#parallel-data-loading) below.
 
 <HooksPlayground fixtures={parallelFetchFixtures} row>
 
@@ -127,7 +127,7 @@ re-renders and `useFetch()` returns updated denormalized data automatically.
 
 :::
 
-:::info React Native
+:::info[React Native]
 
 When using React Navigation, useFetch() will trigger fetches on focus if the data is considered
 stale.

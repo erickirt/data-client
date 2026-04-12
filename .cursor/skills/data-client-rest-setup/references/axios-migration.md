@@ -5,8 +5,10 @@
 **Always run this first**, before any manual edits. It handles deterministic transforms that save significant manual work:
 
 ```bash
-npx jscodeshift -t https://dataclient.io/codemods/axios-to-rest.js --extensions=ts,tsx,js,jsx src/
+npx jscodeshift -t <skill-root>/scripts/axios-to-rest.js --extensions=ts,tsx,js,jsx src/
 ```
+
+Resolve `<skill-root>` to the absolute path of this skill's directory (the parent of `scripts/`).
 
 **What the codemod does:**
 - `import axios from 'axios'` → `import { RestEndpoint } from '@data-client/rest'`
@@ -212,7 +214,7 @@ class BasicAuthEndpoint<O extends RestGenerics = any> extends RestEndpoint<O> {
   getHeaders(headers: HeadersInit) {
     return {
       ...headers,
-      Authorization: `Basic ${btoa('user:pass')}`,
+      Authorization: `Basic ${btoa(`${username}:${password}`)}`,
     };
   }
 }
@@ -285,8 +287,31 @@ class UploadEndpoint<O extends RestGenerics = any> extends RestEndpoint<O> {
           if (e.lengthComputable) this.onProgress!(e.loaded / e.total);
         };
       }
-      xhr.onload = () => resolve(new Response(xhr.response, { status: xhr.status, statusText: xhr.statusText }));
-      xhr.onerror = () => reject(new TypeError('Network request failed'));
+      xhr.onload = () => {
+        const headers = new Headers();
+        xhr.getAllResponseHeaders().trim().split(/\r?\n/).forEach(line => {
+          const [key, ...rest] = line.split(': ');
+          if (key) headers.append(key, rest.join(': '));
+        });
+        init.signal?.removeEventListener('abort', abortXhr);
+        resolve(new Response(xhr.response, { status: xhr.status, statusText: xhr.statusText, headers }));
+      };
+      xhr.onerror = () => {
+        init.signal?.removeEventListener('abort', abortXhr);
+        reject(new TypeError('Network request failed'));
+      };
+      xhr.onabort = () => {
+        init.signal?.removeEventListener('abort', abortXhr);
+        reject(new DOMException('The operation was aborted.', 'AbortError'));
+      };
+      const abortXhr = () => xhr.abort();
+      if (init.signal?.aborted) {
+        reject(new DOMException('The operation was aborted.', 'AbortError'));
+        return;
+      }
+      if (init.signal) {
+        init.signal.addEventListener('abort', abortXhr, { once: true });
+      }
       xhr.send(init.body);
     });
   }

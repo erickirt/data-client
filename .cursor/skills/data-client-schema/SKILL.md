@@ -59,8 +59,8 @@ to represent the data expected.
 
 ## 3. Entity lifecycle methods
 
-- Normalize order: `process()` → [validate()](references/validation.md) → `pk()` → if existing: `mergeWithStore()` which calls `shouldUpdate()` and maybe `shouldReorder()` + `merge()`; metadata via `mergeMetaWithStore()`.
-- Denormalize order: `createIfValid()` → [validate()](references/validation.md) → `fromJS()`.
+- Normalize order: `process()` → `pk()` → [validate()](references/validation.md) → **visit nested schemas** (recurse into `schema` fields) → `mergeWithStore()` which calls `shouldUpdate()` and maybe `shouldReorder()` + `merge()`; metadata via `mergeMetaWithStore()`.
+- Denormalize order: `createIfValid()` → [validate()](references/validation.md) → `fromJS()` → **unvisit nested schemas** (recurse into `schema` fields).
 
 ---
 
@@ -93,7 +93,43 @@ export const EventResource = resource({
 
 ---
 
-## 5. Supplementary Endpoints (enrich existing entities)
+## 5. Collections (Mutable Lists & Maps)
+
+[Collections](references/Collection.md) wrap `Array` or `Values` schemas to enable mutations (add/remove/move).
+
+### pk routing
+
+`pk()` calls `argsKey(...args)` or `nestKey(parent, key)` depending on which was provided, then serializes the result. **No options = defaults to `argsKey: params => ({ ...params })`**, spreading all endpoint args as the collection key.
+
+- `argsKey` — derive pk from endpoint arguments (default)
+- `nestKey` — derive pk from parent entity (for nested collections sharing state across endpoints)
+
+### nonFilterArgumentKeys
+
+Default `createCollectionFilter` uses `nonFilterArgumentKeys` (default: keys starting with `'order'`) to exclude non-filter args when matching collections. This affects which existing collections receive new items from `push`/`unshift`/`assign`/`move`.
+
+Override as function, RegExp, or `string[]`:
+```ts
+new Collection([Todo], { nonFilterArgumentKeys: /orderBy|sortDir/ })
+```
+
+### Extenders
+
+All usable with `ctrl.set()` (local-only) or via [RestEndpoint extenders](https://dataclient.io/rest/api/RestEndpoint) (network).
+
+| Method | Type | Description |
+|--------|------|-------------|
+| `push` | Array | Entity | Append items to end |
+| `unshift` | Array | Entity | Prepend items to start |
+| `assign` | Values | Merge entries into map |
+| `remove` | Both | Remove items by value from matching collections |
+| `move` | Both | Remove from collections matching existing state, add to collections matching new state |
+| `addWith(merge, filter?)` | Both | Custom creation schema (used internally by push/unshift/assign) |
+| `moveWith(merge)` | Both | Custom move schema (control insertion order, e.g., `unshift` merge for prepending) |
+
+---
+
+## 6. Supplementary Endpoints (enrich existing entities)
 
 When an endpoint returns partial or differently-shaped data for an entity already in cache
 (e.g., a metadata endpoint, a stats endpoint, a lazy-load expansion endpoint),
@@ -103,14 +139,14 @@ See [partial-entities](references/partial-entities.md) for patterns and examples
 
 ---
 
-## 6. Best Practices & Notes
+## 7. Best Practices & Notes
 
 - Always set up `schema` on every resource/entity/collection for normalization
 - Normalize deeply nested or relational data by defining proper schemas
 - Use `Entity.schema` for client-side joins
 - Use `Denormalize<>` type from rest/endpoint/graphql instead of InstanceType<>. This will handle all schemas like Unions, not just Entity.
 
-## 7. Common Mistakes to Avoid
+## 8. Common Mistakes to Avoid
 
 - Don't forget to use `fromJS()` or assign default properties for class fields
 - Manually merging or 'enriching' data; instead use `Entity.schema` for client-side joins

@@ -136,21 +136,21 @@ This is useful for webosckets, SSE, logging, etc. Always use the skill "data-cli
 
 For detailed API documentation, see the [references](references/) directory:
 
-- [useSuspense](references/useSuspense.md);[_pagination.mdx](references/_pagination.mdx) - Fetch with Suspense
+- [useSuspense](references/useSuspense.md);[_pagination.md](references/_pagination.md) - Fetch with Suspense
 - [useFetch](references/useFetch.md) - Fetch for React.use() and parallel loading
 - [useQuery](references/useQuery.md) - Read from cache without fetch
 - [useCache](references/useCache.md) - Read from cache (nullable)
-- [useLive](references/useLive.md);[_useLive.mdx](references/_useLive.mdx) - Fetch + subscribe to updates
+- [useLive](references/useLive.md);[_useLive.md](references/_useLive.md) - Fetch + subscribe to updates
 - [useDLE](references/useDLE.md) - Fetch without Suspense (returns data/loading/error)
 - [useSubscription](references/useSubscription.md) - Subscribe to updates (polling/websocket/SSE)
 - [useController](references/useController.md) - Access Controller
 - [Controller](references/Controller.md) - Imperative actions
-- [AsyncBoundary](references/AsyncBoundary.md);[_AsyncBoundary.mdx](references/_AsyncBoundary.mdx) - Error/loading boundary
-- [useLoading](references/useLoading.md);[_useLoading.mdx](references/_useLoading.mdx) - Track async mutation state
+- [AsyncBoundary](references/AsyncBoundary.md);[_AsyncBoundary.md](references/_AsyncBoundary.md) - Error/loading boundary
+- [useLoading](references/useLoading.md);[_useLoading.md](references/_useLoading.md) - Track async mutation state
 - [useDebounce](references/useDebounce.md) - Debounce values
 - [DataProvider](references/DataProvider.md) - Root provider
 - [data-dependency](references/data-dependency.md) - Rendering guide
-- [mutations](references/mutations.md);[_VoteDemo.mdx](references/_VoteDemo.mdx) - Mutations guide
+- [mutations](references/mutations.md);[_VoteDemo.md](references/_VoteDemo.md) - Mutations guide
 - [Actions](references/Actions.md) - Store action types (FETCH, SET, etc.)
 - [devtools-debugging](references/devtools-debugging.md) - Debug with Chrome DevTools MCP
 

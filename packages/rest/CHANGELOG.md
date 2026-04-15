@@ -1,5 +1,36 @@
 # @data-client/rest
 
+## 0.16.6
+
+### Patch Changes
+
+- [#3868](https://github.com/reactive/data-client/pull/3868) [`8a7c8d9`](https://github.com/reactive/data-client/commit/8a7c8d9cc4228a6281849f56121699f237af4b0f) - Add `content` property to RestEndpoint for typed response parsing
+
+  Set `content` to control how the response body is parsed, with automatic return type inference:
+
+  ```ts
+  const downloadFile = new RestEndpoint({
+    path: '/files/:id/download',
+    content: 'blob',
+    dataExpiryLength: 0,
+  });
+  const blob: Blob = await ctrl.fetch(downloadFile, { id: '123' });
+  ```
+
+  Accepted values: `'json'`, `'blob'`, `'text'`, `'arrayBuffer'`, `'stream'`.
+
+  Non-JSON content types (`'blob'`, `'text'`, `'arrayBuffer'`, `'stream'`) constrain `schema` to
+  `undefined` at the type level, with a runtime check that throws if a normalizable schema is set.
+
+  When `content` is not set, auto-detection now handles binary Content-Types (`image/*`,
+  `application/octet-stream`, `application/pdf`, etc.) by returning `response.blob()` instead of
+  corrupting data via `.text()`.
+
+- [#3904](https://github.com/reactive/data-client/pull/3904) [`8af3d5e`](https://github.com/reactive/data-client/commit/8af3d5ee3dbbb637805e99cbd01801d3587bedbd) - Export `CollectionOptions` from the public `@data-client/endpoint` and `@data-client/rest` entrypoints.
+
+- Updated dependencies [[`8af3d5e`](https://github.com/reactive/data-client/commit/8af3d5ee3dbbb637805e99cbd01801d3587bedbd)]:
+  - @data-client/endpoint@0.16.6
+
 ## 0.16.5
 
 ### Patch Changes

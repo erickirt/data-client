@@ -99,10 +99,10 @@ export const EventResource = resource({
 
 ### pk routing
 
-`pk()` calls `argsKey(...args)` or `nestKey(parent, key)` depending on which was provided, then serializes the result. **No options = defaults to `argsKey: params => ({ ...params })`**, spreading all endpoint args as the collection key.
+`pk()` uses `argsKey(...args)` or `nestKey(parent, key)`, then serializes the result. Without either option, it defaults to `argsKey: params => ({ ...params })`, using all endpoint args as the collection key.
 
 - `argsKey` — derive pk from endpoint arguments (default)
-- `nestKey` — derive pk from parent entity (for nested collections sharing state across endpoints)
+- `nestKey` — derive pk from parent entity for nested shared-state collections
 
 ### nonFilterArgumentKeys
 

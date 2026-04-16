@@ -52,6 +52,7 @@ export const TodoResource = resource({
   schema: Todo,
   searchParams: {} as { userId?: string | number } | undefined,
   paginationField: 'page',
+  nonFilterArgumentKeys: ['orderBy'],
   optimistic: true,
 });
 ```
@@ -113,7 +114,7 @@ export const getTicker = new RestEndpoint({
 - Provide `searchParams` / `body` _values_ purely for **type inference**
 - Use `RestGenerics` when inheriting from `RestEndpoint`
 
-### getOptimisticResponse()
+### `getOptimisticResponse()`
 
 ```ts
 getOptimisticResponse(snap, { id }) {
@@ -128,39 +129,15 @@ getOptimisticResponse(snap, { id }) {
 
 ---
 
-### 4. RestEndpoint lifecycle methods
+### RestEndpoint lifecycle methods
 
 - **Perform Fetch:** `fetchResponse()` → `parseResponse()` → `process()`
   - **url(urlParams):** `urlPrefix` + `path` + (`searchParams` → `searchToString()`)
   - **getRequestInit(body):** `getHeaders()` + `method` + `signal`
 
-#### Non-JSON responses (file download, blob, arrayBuffer)
-
-Override `parseResponse()` for binary/non-JSON responses. Set `schema: undefined` (not normalizable) and `dataExpiryLength: 0` to avoid caching large blobs.
-
-```ts
-const downloadFile = new RestEndpoint({
-  path: '/files/:id/download',
-  schema: undefined,
-  dataExpiryLength: 0,
-  async parseResponse(response) {
-    const blob = await response.blob();
-    const disposition = response.headers.get('Content-Disposition');
-    const filename =
-      disposition?.match(/filename="?(.+?)"?$/)?.[1] ?? 'download';
-    return { blob, filename };
-  },
-  process(value): { blob: Blob; filename: string } {
-    return value;
-  },
-});
-```
-
-For complete usage with browser download trigger, see [network-transform: file download](references/network-transform.md#file-download).
-
 ---
 
-## 5. **Extending Resources**
+## 4. **Extending Resources**
 
 Use `.extend()` to add or override endpoints.
 
@@ -177,13 +154,14 @@ export const IssueResource = resource({
 
 ---
 
-## 6. Best Practices & Notes
+## 5. Best Practices & Notes
 
 - When asked to browse or navigate to a web address, actual visit the address
 - Always set up `schema` on every resource/entity/collection for normalization
 - Prefer `RestEndpoint` over `resource()` for defining single endpoints or when mutation endpoints don't exist
+- For blob/file downloads and other non-JSON responses, see [network-transform: file download](references/network-transform.md#file-download).
 
-## 7. Common Mistakes to Avoid
+## 6. Common Mistakes to Avoid
 
 - Don't use `resource()` when mutation endpoints are not used or needed
 

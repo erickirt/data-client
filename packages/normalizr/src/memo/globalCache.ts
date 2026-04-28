@@ -173,24 +173,20 @@ export default class GlobalCache implements Cache {
 
     if (paths === undefined) {
       data = computeValue();
-      // we want to do this before we fill our 'input' entry
+      // build the consumer-facing subscription list once, here.
+      // `paths()` already excludes the input placeholder slot and (when
+      // `_hasArgsKey`) function-typed `argsKey` deps, so it's exactly the
+      // shape every hit-branch consumer needs. We hand it to the cache as
+      // the journey so subsequent hits return it by reference — no per-hit
+      // `slice(1)` or filter pass required.
       paths = this.paths();
-      // fill pre-allocated slot 0 with the input reference
+      // fill pre-allocated slot 0 with the input reference (chain key only)
       this.dependencies[0] = { path: { key: '', pk: '' }, entity: input };
-      this._resultCache.set(this.dependencies, data, this._args);
-    } else {
-      paths.shift();
-      // strip any function-typed (`argsKey`) paths — not subscribable entities.
-      // Only possible when the result cache has ever stored such a dep.
-      if (this._resultCache.hasStringDeps) {
-        for (let i = 0; i < paths.length; i++) {
-          if (typeof paths[i] === 'function') {
-            paths = paths.filter(p => typeof p !== 'function') as EntityPath[];
-            break;
-          }
-        }
-      }
+      this._resultCache.set(this.dependencies, data, this._args, paths);
     }
+    // hit branch: `paths` aliases the stored Link.journey — return as-is.
+    // Callers must not mutate it (entityExpiresAt and createCountRef both
+    // read-only). The journey-mutation regression test guards this contract.
     return { data, paths };
   }
 

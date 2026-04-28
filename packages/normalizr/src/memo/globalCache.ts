@@ -1,6 +1,9 @@
 import type { GetEntityCache } from './entitiesCache.js';
 import { EndpointsCache } from './types.js';
-import WeakDependencyMap, { type Dep } from './WeakDependencyMap.js';
+import WeakDependencyMap, {
+  type Dep,
+  type KeyFn,
+} from './WeakDependencyMap.js';
 import type Cache from '../denormalize/cache.js';
 import type { INVALID } from '../denormalize/symbol.js';
 import type { EntityInterface, EntityPath } from '../interface.js';
@@ -21,15 +24,32 @@ export default class GlobalCache implements Cache {
 
   declare private _getEntity: DenormGetEntity;
   declare private _resultCache: EndpointsCache;
+  declare private _args: readonly any[];
+  /** Set true once `argsKey` is called for this denormalize frame. Gates
+   * function-stripping fast paths in `paths()` / `getResults()`. */
+  private _hasArgsKey = false;
 
   constructor(
     getEntity: DenormGetEntity,
     getCache: GetEntityCache,
     resultCache: EndpointsCache,
+    args: readonly any[] = [],
   ) {
     this._getEntity = getEntity;
     this._getCache = getCache;
     this._resultCache = resultCache;
+    this._args = args;
+  }
+
+  /** Records `fn(args)` as a string-keyed dependency for the surrounding
+   * entity-cache frame and returns the value. The function reference is the
+   * cache path key (must be referentially stable); `set` later re-evaluates
+   * the function with the same `args` to derive the bucket key — keeps the
+   * Dep shape monomorphic with entity-style deps (`{path, entity}`). */
+  argsKey(fn: KeyFn): string | undefined {
+    this._hasArgsKey = true;
+    this.dependencies.push({ path: fn as any, entity: undefined });
+    return fn(this._args);
   }
 
   getEntity(
@@ -49,7 +69,11 @@ export default class GlobalCache implements Cache {
         object,
         EntityCacheValue
       > = this._getCache(pk, schema);
-      const [cacheValue, cachePath] = globalCache.get(entity, this._getEntity);
+      const [cacheValue, cachePath] = globalCache.get(
+        entity,
+        this._getEntity,
+        this._args,
+      );
       // TODO: what if this just returned the deps - then we don't need to store them
 
       if (cachePath) {
@@ -61,6 +85,12 @@ export default class GlobalCache implements Cache {
         for (let i = 0; i < cdeps.length; i++) {
           this.dependencies.push(cdeps[i]);
         }
+        // Replayed deps may include function-typed (`argsKey`) paths from
+        // a prior frame's computeValue (e.g. Scalar.denormalize). Since
+        // computeValue didn't run here, `argsKey()` wasn't called and the
+        // flag would otherwise stay false — causing `paths()`'s fast path
+        // to leak function refs into the EntityPath subscription list.
+        if (globalCache.hasStringDeps) this._hasArgsKey = true;
         return cacheValue.value;
       }
       // if we don't find in denormalize cache then do full denormalize
@@ -84,7 +114,7 @@ export default class GlobalCache implements Cache {
           dependencies: localKey,
           value: localCacheKey.get(pk),
         };
-        globalCache.set(localKey, cacheValue);
+        globalCache.set(localKey, cacheValue, this._args);
 
         // start of cycle - reset cycle detection
         if (this.cycleIndex === trackingIndex) {
@@ -135,7 +165,11 @@ export default class GlobalCache implements Cache {
       return { data: computeValue(), paths: this.paths() };
     }
 
-    let [data, paths] = this._resultCache.get(input, this._getEntity);
+    let [data, paths] = this._resultCache.get(
+      input,
+      this._getEntity,
+      this._args,
+    );
 
     if (paths === undefined) {
       data = computeValue();
@@ -143,18 +177,40 @@ export default class GlobalCache implements Cache {
       paths = this.paths();
       // fill pre-allocated slot 0 with the input reference
       this.dependencies[0] = { path: { key: '', pk: '' }, entity: input };
-      this._resultCache.set(this.dependencies, data);
+      this._resultCache.set(this.dependencies, data, this._args);
     } else {
       paths.shift();
+      // strip any function-typed (`argsKey`) paths — not subscribable entities.
+      // Only possible when the result cache has ever stored such a dep.
+      if (this._resultCache.hasStringDeps) {
+        for (let i = 0; i < paths.length; i++) {
+          if (typeof paths[i] === 'function') {
+            paths = paths.filter(p => typeof p !== 'function') as EntityPath[];
+            break;
+          }
+        }
+      }
     }
     return { data, paths };
   }
 
+  /** Materialize the EntityPath subscription list. Function-typed
+   * (`argsKey`) deps are not subscribable entities and are filtered out. */
   protected paths() {
     const deps = this.dependencies;
-    const paths = new Array(deps.length - 1);
+    // Fast path: when no `argsKey` was recorded this frame, `deps[1..]` are
+    // all entity paths — restore the pre-allocated indexed-write pattern.
+    if (!this._hasArgsKey) {
+      const paths = new Array(deps.length - 1) as EntityPath[];
+      for (let i = 1; i < deps.length; i++) {
+        paths[i - 1] = deps[i].path as EntityPath;
+      }
+      return paths;
+    }
+    const paths: EntityPath[] = [];
     for (let i = 1; i < deps.length; i++) {
-      paths[i - 1] = deps[i].path;
+      const p = deps[i].path;
+      if (typeof p !== 'function') paths.push(p as EntityPath);
     }
     return paths;
   }

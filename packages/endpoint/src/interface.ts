@@ -24,6 +24,19 @@ export type Serializable<
 > = (value: any) => T;
 
 export interface SchemaSimple<T = any, Args extends readonly any[] = any> {
+  /**
+   * Normalize a value into entity table form.
+   *
+   * @param input        The value being normalized.
+   * @param parent       The parent object/array/dictionary containing `input`.
+   * @param key          The key under which `input` lives on `parent`.
+   * @param args         The endpoint args for this normalize call.
+   * @param visit        Recursive visitor for nested schemas.
+   * @param delegate     Store accessors for reading/writing entities.
+   * @param parentEntity Nearest enclosing entity-like schema (one with `pk`),
+   *                     tracked automatically by the visit walker. `Scalar`
+   *                     uses this to discover its entity binding.
+   */
   normalize(
     input: any,
     parent: any,
@@ -31,12 +44,9 @@ export interface SchemaSimple<T = any, Args extends readonly any[] = any> {
     args: any[],
     visit: (...args: any) => any,
     delegate: { getEntity: any; setEntity: any },
+    parentEntity?: any,
   ): any;
-  denormalize(
-    input: {},
-    args: readonly any[],
-    unvisit: (schema: any, input: any) => any,
-  ): T;
+  denormalize(input: {}, delegate: IDenormalizeDelegate): T;
   queryKey(
     args: Args,
     unvisit: (...args: any) => any,
@@ -111,7 +121,21 @@ export interface EntityTable {
     | undefined;
 }
 
-/** Visits next data + schema while recurisvely normalizing */
+/**
+ * Visits next data + schema while recursively normalizing.
+ *
+ * @param schema The schema to apply to `value`.
+ * @param value  The value being visited.
+ * @param parent The parent object/array/dictionary that holds `value`.
+ *               Schemas that recurse via `visit` should pass their own
+ *               `input` (or the surrounding container) here.
+ * @param key    The key under which `value` lives on `parent`.
+ * @param args   The endpoint args for this normalize call.
+ *
+ * The walker internally tracks the nearest enclosing entity-like schema and
+ * forwards it to `schema.normalize` as a trailing `parentEntity` argument —
+ * see `SchemaSimple.normalize`. Consumers of `visit` don't pass it.
+ */
 export interface Visit {
   (schema: any, value: any, parent: any, key: any, args: readonly any[]): any;
   creating?: boolean;
@@ -157,6 +181,20 @@ export interface IQueryDelegate {
   getIndex: GetIndex;
   /** Return to consider results invalid */
   INVALID: symbol;
+}
+
+/** Helpers during schema.denormalize() */
+export interface IDenormalizeDelegate {
+  /** Recursive denormalize of nested schemas */
+  unvisit(schema: any, input: any): any;
+  /** Raw endpoint args. Reading this does NOT contribute to cache
+   * invalidation — if your output varies with args, register an `argsKey`
+   * so the cache buckets correctly. */
+  readonly args: readonly any[];
+  /** Adds a memoization dimension to the surrounding cache frame.
+   * `fn` must be referentially stable (it doubles as the cache path key).
+   * Returns `fn(args)` for convenience. */
+  argsKey(fn: (args: readonly any[]) => string | undefined): string | undefined;
 }
 
 /** Helpers during schema.normalize() */

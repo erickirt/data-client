@@ -31,7 +31,7 @@ to represent the data expected.
 
 ### Lens-dependent entity fields
 
-- [new Scalar({ lens, key, entity? })](references/Scalar.md) - per-field cells that vary by a runtime "lens" (portfolio, currency, locale) without mutating the underlying entity
+- [new Scalar({ lens, key, entity? })](references/Scalar.md) - fields that vary by runtime lens (portfolio, currency, locale) without entity mutation
 
 ### Derived / selector pattern
 
@@ -169,6 +169,7 @@ For detailed API documentation, see the [references](references/) directory:
 - [Invalidate](references/Invalidate.md) - Delete entities
 - [Lazy](references/Lazy.md) - Deferred / circular schemas
 - [Scalar](references/Scalar.md) - Lens-dependent entity fields
+  - [Scalar demo](references/_ScalarDemo.mdx)
 - [Values](references/Values.md) - Map schemas
 - [All](references/All.md) - List all entities of a kind
 - [Array](references/Array.md) - Immutable list schema

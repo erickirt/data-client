@@ -2,9 +2,9 @@
 
 const { defineInlineTest } = require('jscodeshift/dist/testUtils');
 
-const transform = require('../v0.17');
+const transform = require('../v0.18');
 
-describe('v0.17 codemod', () => {
+describe('v0.18 codemod', () => {
   describe('class denormalize methods', () => {
     defineInlineTest(
       transform,

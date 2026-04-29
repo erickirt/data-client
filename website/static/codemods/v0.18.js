@@ -1,7 +1,7 @@
 'use strict';
 
 /**
- * @data-client v0.17 migration codemod
+ * @data-client v0.18 migration codemod
  *
  * Transforms:
  *   1. Schema.denormalize(input, args, unvisit) → denormalize(input, delegate)
@@ -15,7 +15,7 @@
  *      when type annotations are required.
  *
  * Usage:
- *   npx jscodeshift -t https://dataclient.io/codemods/v0.17.js --extensions=ts,tsx,js,jsx src/
+ *   npx jscodeshift -t https://dataclient.io/codemods/v0.18.js --extensions=ts,tsx,js,jsx src/
  */
 
 const DATA_CLIENT_PREFIX = '@data-client/';

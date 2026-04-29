@@ -1,16 +1,16 @@
 ---
-name: data-client-v0.17-migration
-description: Migrate custom @data-client schemas from the v0.16 denormalize(input, args, unvisit) signature to the v0.17 denormalize(input, delegate) signature. Use when upgrading to v0.17, when seeing TS errors about unvisit not being callable, or when adapting custom Schema implementations.
+name: data-client-v0.18-migration
+description: Migrate custom @data-client schemas from the v0.18 denormalize(input, args, unvisit) signature to the v0.18 denormalize(input, delegate) signature. Use when upgrading to v0.18, when seeing TS errors about unvisit not being callable, or when adapting custom Schema implementations.
 ---
 
-# @data-client v0.17 Migration
+# @data-client v0.18 Migration
 
 Applies to anyone implementing a custom [`Schema`](https://dataclient.io/docs/api/Schema) — `SchemaSimple`, `SchemaClass`, polymorphic wrappers, or types that subclass `EntityMixin` directly. Built-in schemas (`Entity`, `resource()`, `Collection`, `Union`, `Values`, `Array`, `Object`, `Query`, `Invalidate`, `Lazy`) are migrated by the library.
 
 The automated codemod handles the common cases:
 
 ```bash
-npx jscodeshift -t https://dataclient.io/codemods/v0.17.js --extensions=ts,tsx,js,jsx src/
+npx jscodeshift -t https://dataclient.io/codemods/v0.18.js --extensions=ts,tsx,js,jsx src/
 ```
 
 This skill describes what it does and how to handle the cases it can't.

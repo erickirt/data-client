@@ -11,7 +11,8 @@
       "@data-client/normalizr",
       "@data-client/react",
       "@data-client/rest",
-      "@data-client/test"
+      "@data-client/test",
+      "@data-client/vue"
     ]
   ],
   "fixed": [],

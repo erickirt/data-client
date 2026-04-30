@@ -3,6 +3,7 @@ import type {
   SchemaSimple,
   Schema,
   PolymorphicInterface,
+  IDenormalizeDelegate,
   INormalizeDelegate,
 } from './interface.js';
 import type { EntityMap } from './normal.js';
@@ -108,8 +109,6 @@ export interface CollectionInterface<
     input: any,
     parent: Parent,
     key: string,
-    args: any[],
-    visit: (...args: any) => any,
     delegate: INormalizeDelegate,
     parentEntity?: any,
   ): string;
@@ -183,8 +182,7 @@ export interface CollectionInterface<
   createIfValid: (value: any) => any | undefined;
   denormalize(
     input: any,
-    args: readonly any[],
-    unvisit: (schema: any, input: any) => any,
+    delegate: IDenormalizeDelegate,
   ): ReturnType<S['denormalize']>;
 
   _denormalizeNullable(): ReturnType<S['_denormalizeNullable']>;
@@ -247,6 +245,9 @@ export type SchemaFunction<K = string, Args = any> = (
   parent: any,
   key: string,
 ) => K;
+export type SchemaAttribute<K = string, Args = any> =
+  | K
+  | SchemaFunction<K, Args>;
 export type MergeFunction = (entityA: any, entityB: any) => any;
 export type SchemaAttributeFunction<S extends Schema> = (
   value: any,

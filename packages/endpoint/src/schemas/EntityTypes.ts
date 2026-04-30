@@ -1,6 +1,7 @@
 import type {
   Schema,
   IDenormalizeDelegate,
+  INormalizeDelegate,
   IQueryDelegate,
 } from '../interface.js';
 import { AbstractInstanceType } from '../normal.js';
@@ -166,9 +167,7 @@ export interface IEntityClass<TBase extends Constructor = any> {
     input: any,
     parent: any,
     key: string | undefined,
-    args: any[],
-    visit: (...args: any) => any,
-    snapshot: { getEntity: any; setEntity: any },
+    delegate: INormalizeDelegate,
   ): any;
   /** Do any transformations when first receiving input
    *

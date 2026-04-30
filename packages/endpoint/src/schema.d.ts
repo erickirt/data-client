@@ -69,8 +69,6 @@ export class Array<S extends Schema = Schema> implements SchemaClass {
     input: any,
     parent: any,
     key: any,
-    args: any[],
-    visit: (...args: any) => any,
     delegate: INormalizeDelegate,
   ): (S extends EntityMap ? UnionResult<S> : Normalize<S>)[];
 
@@ -123,8 +121,6 @@ export class All<
     input: any,
     parent: any,
     key: any,
-    args: any[],
-    visit: (...args: any) => any,
     delegate: INormalizeDelegate,
   ): (S extends EntityMap ? UnionResult<S> : Normalize<S>)[];
 
@@ -167,8 +163,6 @@ export class Object<
     input: any,
     parent: any,
     key: any,
-    args: any[],
-    visit: (...args: any) => any,
     delegate: INormalizeDelegate,
   ): NormalizeObject<O>;
 
@@ -251,8 +245,6 @@ export interface UnionInstance<
     input: any,
     parent: any,
     key: any,
-    args: any[],
-    visit: (...args: any) => any,
     delegate: INormalizeDelegate,
   ): UnionResult<Choices>;
 
@@ -322,8 +314,6 @@ export class Values<Choices extends Schema = any> implements SchemaClass {
     input: any,
     parent: any,
     key: any,
-    args: any[],
-    visit: (...args: any) => any,
     delegate: INormalizeDelegate,
   ): Record<
     string,

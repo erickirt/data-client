@@ -203,19 +203,11 @@ export default class CollectionSchema<
     input: any,
     parent: Parent,
     key: string,
-    args: any[],
-    visit: (...args: any) => any,
     delegate: INormalizeDelegate,
     parentEntity?: any,
   ): string {
-    const normalizedValue = this.schema.normalize(
-      input,
-      parent,
-      key,
-      args,
-      visit,
-      delegate,
-    );
+    const args = delegate.args;
+    const normalizedValue = this.schema.normalize(input, parent, key, delegate);
     const id = this.pk(normalizedValue, parent, key, args, parentEntity);
 
     delegate.mergeEntity(this, id, normalizedValue);
@@ -278,7 +270,9 @@ export default class CollectionSchema<
   denormalize(
     input: any,
     delegate: IDenormalizeDelegate,
-  ): ReturnType<S['denormalize']> {
+  ): ReturnType<S['denormalize']>;
+
+  denormalize(input: any, delegate: IDenormalizeDelegate): any {
     return this.schema.denormalize(input, delegate) as any;
   }
 }
@@ -354,11 +348,11 @@ function normalizeCreate(
   input: any,
   parent: any,
   key: string,
-  args: readonly any[],
-  visit: ((...args: any) => any) & { creating?: boolean },
   delegate: INormalizeDelegate,
   _parentEntity?: any,
 ): any {
+  const args = delegate.args;
+  const visit = delegate.visit;
   if (process.env.NODE_ENV !== 'production') {
     // means 'this is a creation endpoint' - so real PKs are not required
     // this is used by Entity.normalize() to determine whether to allow empty pks
@@ -371,8 +365,6 @@ function normalizeCreate(
     : [input],
     parent,
     key,
-    args,
-    visit,
     delegate,
   );
   // parent is args when not nested
@@ -402,8 +394,6 @@ function CreateMover<C extends CollectionSchema<any, any>>(
         input: any,
         parent: any,
         key: string,
-        args: readonly any[],
-        visit: any,
         delegate: INormalizeDelegate,
         parentEntity?: any,
       ) {
@@ -413,8 +403,6 @@ function CreateMover<C extends CollectionSchema<any, any>>(
           input,
           parent,
           key,
-          args,
-          visit,
           delegate,
           parentEntity,
         );
@@ -435,11 +423,10 @@ function normalizeMove(
   input: any,
   parent: any,
   key: string,
-  args: readonly any[],
-  visit: ((...args: any) => any) & { creating?: boolean },
   delegate: INormalizeDelegate,
   _parentEntity?: any,
 ): any {
+  const args = delegate.args;
   const isArray = this.schema instanceof ArraySchema;
   const entitySchema = this.schema.schema;
 
@@ -467,8 +454,6 @@ function normalizeMove(
     toNormalize,
     parent,
     key,
-    args,
-    visit,
     delegate,
   );
 

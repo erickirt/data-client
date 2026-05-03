@@ -1,186 +1,59 @@
 ---
 name: data-client-v0.18-migration
-description: Migrate custom @data-client schemas to v0.18 delegate signatures: denormalize(input, args, unvisit) -> denormalize(input, delegate) and normalize(input, parent, key, args, visit, delegate) -> normalize(input, parent, key, delegate). Use when upgrading to v0.18, seeing TS errors about unvisit/visit/args signatures, or adapting custom Schema implementations.
+description: Migrate @data-client codebases to v0.18 delegate signatures. Drives the v0.18 codemod and then handles the cases it cannot — especially registering argsKey for schemas whose output depends on endpoint args. Use when upgrading to v0.18, seeing TS errors about unvisit/visit/args/delegate signatures, or adapting custom Schema implementations.
 ---
 
 # @data-client v0.18 Migration
 
 Applies to anyone implementing a custom [`Schema`](https://dataclient.io/rest/api/SchemaSimple) — `SchemaSimple`, `SchemaClass`, polymorphic wrappers, or types that subclass `EntityMixin` directly. Built-in schemas (`Entity`, `resource()`, `Collection`, `Union`, `Values`, `Array`, `Object`, `Query`, `Invalidate`, `Lazy`) are migrated by the library.
 
-The automated codemod handles the common cases:
-
-```bash
-npx jscodeshift -t https://dataclient.io/codemods/v0.18.js --extensions=ts,tsx,js,jsx src/
-```
-
-## Codemod prerequisites / limits
-
-- **Edits only run in files that already import `@data-client/*`** (any subpath). If the codemod appears to do nothing, add such an import (or migrate that file by hand).
-- **`denormalize` / `normalize` as class fields** — e.g. `denormalize = (input, args, unvisit) => { ... }` — are **not** transformed; use a `denormalize(...) { }` method (or rewrite manually).
-- **TS interface method signatures** — only the key `denormalize` is matched for `TSMethodSignature` (not `_denormalize` / `_denormalizeNullable`). Underscore-prefixed names are updated when they appear as **`declare` or property types** with a function type annotation (see below).
-- **Top-level** `function denormalize` / `function normalize` is handled; **`const denormalize = function...`** is not.
-
-This skill describes what the codemod does and how to handle the cases it cannot.
-
 ## What changed
 
-`Schema.denormalize()` now takes a single `delegate` instead of `(args, unvisit)`. Reading `delegate.args` does **not** contribute to cache invalidation — schemas whose output varies with endpoint args must register that dependency through `delegate.argsKey(fn)`.
+`Schema.denormalize` and `Schema.normalize` now take a single `delegate` instead of `(args, unvisit)` / `(args, visit, delegate)`:
 
 ```ts
-// before
-denormalize(input, args, unvisit) {
-  return unvisit(this.schema, input);
-}
-
-// after
-denormalize(input, delegate) {
-  return delegate.unvisit(this.schema, input);
-}
-```
-
-`Schema.normalize()` also takes a delegate, matching the denormalize shape. The
-old signature was `(input, parent, key, args, visit, delegate, parentEntity?)`;
-the new signature is `(input, parent, key, delegate, parentEntity?)`.
-
-```ts
-// before
-normalize(input, parent, key, args, visit, delegate) {
-  return visit(this.schema, input, parent, key, args);
-}
-
-// after
-normalize(input, parent, key, delegate) {
+denormalize(input, delegate) { return delegate.unvisit(this.schema, input); }
+normalize(input, parent, key, delegate /*, parentEntity? */) {
   return delegate.visit(this.schema, input, parent, key);
 }
 ```
 
-Full delegate surface ([`IDenormalizeDelegate`](https://dataclient.io/rest/api/SchemaSimple)):
+Critical semantic change: reading `delegate.args` does **not** contribute to cache invalidation. Schemas whose *output* varies with endpoint args must register that dependency through [`delegate.argsKey(fn)`](https://dataclient.io/rest/api/SchemaSimple). See [Step 2](#step-2-register-argskey-for-args-dependent-schemas-not-automatable) below.
 
-```ts
-interface IDenormalizeDelegate {
-  unvisit(schema: any, input: any): any;
-  readonly args: readonly any[];
-  argsKey(fn: (args: readonly any[]) => string | undefined): string | undefined;
-}
+## Step 1: run the codemod
+
+**Pre-check — skip the rest of this skill if it doesn't apply.** Most apps that only consume `@data-client` (use `Entity`, `resource()`, `Collection`, `Query`, etc.) need *zero* code changes for v0.18. Run the search below at your repo root — `rg` respects `.gitignore` so it won't dive into `node_modules`. If it returns nothing, you're done; bump the package versions and move on.
+
+```bash
+# preferred (ripgrep)
+rg -n 'extends (Schema|SchemaSimple|SchemaClass|EntityMixin)\b|^\s*_?(de)?normalize\s*[(=:]|\bunvisit\b|\bvisit\(' .
+# fallback (POSIX grep) — adjust the path list to your source roots
+grep -rEn --include='*.ts' --include='*.tsx' --include='*.js' --include='*.jsx' \
+  'extends (Schema|SchemaSimple|SchemaClass|EntityMixin)\b|^[[:space:]]*_?(de)?normalize[[:space:]]*[(=:]|\bunvisit\b|\bvisit\(' \
+  src app lib packages 2>/dev/null
 ```
 
-## Migration rules
+The pre-check intentionally ignores `Entity` overrides of `pk`, `process`, and `merge` — those signatures didn't change in v0.18. Only the `denormalize` / `normalize` delegate signature did.
 
-### Class methods
+Otherwise, commit first so you can diff, then run the codemod against your source roots — `src/` is the conventional location, but App Router (`app/`), Vue (`src/`), monorepo packages (`packages/`), and library (`lib/`) layouts all need the path adjusted:
 
-`(input, args, unvisit)` → `(input, delegate)`. Inside the body:
-
-- `unvisit(schema, value)` → `delegate.unvisit(schema, value)`
-- bare `args` references (including spreads) → `delegate.args`
-- pass-through `someSchema.denormalize(input, args, unvisit)` → `someSchema.denormalize(input, delegate)`
-
-```ts
-// before
-class Wrapper {
-  denormalize(input: {}, args: readonly any[], unvisit: any) {
-    const value = unvisit(this.schema, input);
-    return this.process(value, ...args);
-  }
-}
-
-// after
-class Wrapper {
-  denormalize(input: {}, delegate: IDenormalizeDelegate) {
-    const value = delegate.unvisit(this.schema, input);
-    return this.process(value, ...delegate.args);
-  }
-}
+```bash
+npx jscodeshift -t https://dataclient.io/codemods/v0.18.js --extensions=ts,tsx,js,jsx <source-root>
 ```
 
-### Normalize methods
+Do **not** point jscodeshift at the repo root — it doesn't respect `.gitignore` and will walk into `node_modules`.
 
-`(input, parent, key, args, visit, delegate, parentEntity?)` →
-`(input, parent, key, delegate, parentEntity?)`. Inside the body:
+A clean run looks like `0 errors, N unmodified, 0 skipped` — that's expected, not a failure. The codemod rewrites parameter lists, body references (`unvisit(…)`, `visit(…)`, bare `args`), pass-through calls, TS method/property signatures, and adds `IDenormalizeDelegate` / `INormalizeDelegate` imports. After it runs, only the cases below need hand work.
 
-- `visit(schema, value, parent, key, args)` → `delegate.visit(schema, value, parent, key)`
-- bare `args` references (including spreads) → `delegate.args`
-- pass-through `someSchema.normalize(input, parent, key, args, visit, delegate)` →
-  `someSchema.normalize(input, parent, key, delegate)`
+**Single-file components (Vue/Svelte/Astro/MDX):** the codemod uses jscodeshift's `tsx` parser, which can't parse SFCs — adding `.vue` (etc.) to `--extensions` produces parse errors, not transforms. If your schemas live inside SFC `<script>` blocks, either extract them to plain `.ts` first (preferred — schemas are usually shared across components anyway) or migrate those files by hand using the rewrite shape from [Step 3](#step-3-hand-migrate-cases-the-codemod-skips).
 
-```ts
-// before
-class Wrapper {
-  normalize(input: {}, parent: any, key: string, args: readonly any[], visit: any, delegate: any) {
-    const value = visit(this.schema, input, parent, key, args);
-    return this.process(value, ...args);
-  }
-}
+## Step 2: register `argsKey` for args-dependent schemas (not automatable)
 
-// after
-class Wrapper {
-  normalize(input: {}, parent: any, key: string, delegate: INormalizeDelegate) {
-    const value = delegate.visit(this.schema, input, parent, key);
-    return this.process(value, ...delegate.args);
-  }
-}
-```
+If your schema's *return value* depends on endpoint args, the codemod will rewrite `args` → `delegate.args`, but that read alone no longer participates in memoization. Register the dependency explicitly so the cache invalidates correctly.
 
-If your normalize implementation used a different name for the existing delegate
-parameter, such as `snapshot`, the codemod keeps that name and rewrites
-`args`/`visit` to `snapshot.args` / `snapshot.visit`.
-
-### TypeScript signatures
-
-Update method signatures and `declare` fields the same way:
+`argsKey(fn)` returns `fn(args)` and uses the function reference itself as the cache path key. **`fn` must be referentially stable** — bind it on the instance or at module scope. An inline arrow creates a new reference per call and misses the cache every time.
 
 ```ts
-// before
-interface MySchema {
-  denormalize(input: {}, args: readonly any[], unvisit: (s: any, v: any) => any): any;
-  normalize(input: {}, parent: any, key: any, args: readonly any[], visit: (s: any, v: any, p: any, k: any, a: readonly any[]) => any, delegate: any): any;
-}
-
-class Lazy {
-  declare _denormalizeNullable: (
-    input: {},
-    args: readonly any[],
-    unvisit: (s: any, v: any) => any,
-  ) => any;
-}
-
-// after — the codemod adds delegate types to your existing
-// `@data-client/{rest,endpoint,normalizr,...}` import as an inline
-// `type` specifier. Only when no such import exists does it create
-// new `import type { ... } from '@data-client/endpoint'` lines.
-import {
-  Entity,
-  type IDenormalizeDelegate,
-  type INormalizeDelegate,
-} from '@data-client/rest';
-
-interface MySchema {
-  denormalize(input: {}, delegate: IDenormalizeDelegate): any;
-  normalize(input: {}, parent: any, key: any, delegate: INormalizeDelegate): any;
-}
-
-class Lazy {
-  declare _denormalizeNullable: (input: {}, delegate: IDenormalizeDelegate) => any;
-}
-```
-
-On types: **`interface { denormalize(...) }`** uses the literal key `denormalize` only. **`_denormalize` / `_denormalizeNullable`** (and similar) are matched on **`declare` / property signatures** whose type is a `(...)` function type. **`normalize`** type signatures use the literal key `normalize` with the old 6- or 7-parameter form.
-
-### args-dependent output (manual)
-
-The codemod will rewrite `args` to `delegate.args`, but if your schema's *return value* depends on those args, you must also register an [`argsKey`](https://dataclient.io/rest/api/SchemaSimple) so memoization invalidates correctly. The codemod cannot do this for you.
-
-`argsKey` returns `fn(args)` for convenience **and** the function reference doubles as the cache path key on `WeakDependencyMap` — so `fn` must be **referentially stable**. Bind it in the constructor or at module scope; an inline arrow creates a new reference per call and misses the cache every time.
-
-```ts
-// before — args read directly
-class LensSchema {
-  denormalize(input, args, unvisit) {
-    const lens = args[0]?.portfolio;
-    return this.lookup(input, lens);
-  }
-}
-
-// after — stable instance field + declared memo dimension
 class LensSchema {
   constructor({ lens }) {
     this.lensSelector = lens;
@@ -194,46 +67,33 @@ class LensSchema {
 
 See [`Scalar`](https://dataclient.io/rest/api/Scalar) for a real-world example.
 
-## What the codemod skips
+## Step 3: hand-migrate cases the codemod skips
 
-Do these by hand when they apply:
+The codemod no-ops on these — find them and update by hand. The shape of the change is always the same: `(input, args, unvisit)` → `(input, delegate)` and `(input, parent, key, args, visit, delegate[, parentEntity])` → `(input, parent, key, delegate[, parentEntity])`, with `unvisit`/`visit` becoming `delegate.unvisit`/`delegate.visit` and bare `args` becoming `delegate.args`.
 
-- **No `@data-client/*` import** in the file (codemod no-ops).
-- **Class field** `denormalize = …` / `normalize = …` (arrow or function expression).
-- **`const denormalize` / `const normalize`** (only declarations named `denormalize` / `normalize` are matched).
-- **Computed keys** on class/object methods (e.g. `[name]: function...`). Identifier and string-literal keys `denormalize` / `normalize` are matched.
-- **Methods reassigned dynamically** (`obj.denormalize = function(input, args, unvisit) { ... }`).
-- **Normalize methods reassigned dynamically** (`obj.normalize = function(input, parent, key, args, visit, delegate) { ... }`).
-- **Interface methods** named `_denormalize` / `_denormalizeNullable` (use `denormalize` on the interface or edit manually).
-- **Custom helper functions** that wrap `(args, unvisit)` and are passed around — update the helper and its callers.
-- **`argsKey` registration** for schemas whose output varies with `args` (see above).
+- **Files with no `@data-client/*` import** — the codemod gates on this. Either add an import or migrate the file by hand.
+- **Class fields** — `denormalize = (input, args, unvisit) => { ... }`. Rewrite to a method (`denormalize(input, delegate) { ... }`) so future codemods catch it too.
+- **`const denormalize = function...`** / **`const normalize = function...`** — only `function` declarations and methods are matched.
+- **Computed or dynamic method keys** — `[name]: function(...)`, `obj.denormalize = function(...)`. Identifier and string-literal keys are matched; nothing else is.
+- **Interface methods named `_denormalize` / `_denormalizeNullable`** as `TSMethodSignature` — only the literal key `denormalize` is matched in that form. The same names *are* handled when written as `declare` fields or property signatures with a function type. Either rename to `denormalize` on the interface or edit the parameter list manually.
+- **Custom helper functions** that wrap `(args, unvisit)` and are passed around — update the helper signature and every caller.
 
-## New normalize context
+## Step 4: verify
 
-`Schema.normalize()` keeps the optional trailing `parentEntity` parameter — the
-nearest enclosing entity-like schema, tracked automatically by the visit walker.
-Existing schemas that use it should keep it after the delegate parameter.
+1. Run the type-checker. Residual errors about `unvisit`, `visit`, `args`, or delegate parameter counts point at code Step 3 missed.
+2. Run your test suite. Cache-invalidation regressions usually surface as stale denormalized values when args change — that signals a missing `argsKey` from Step 2.
+3. Grep for leftover patterns the codemod can't see:
+   - `denormalize(` followed by three params, or `normalize(` with `args, visit, delegate`
+   - bare `unvisit(` / `visit(` calls inside denormalize/normalize bodies
+   - spread `...args` inside denormalize/normalize bodies
 
-### Optional Collection cleanup
+## Optional: Collection consolidation
 
-Unrelated to delegate signatures: v0.18 allows one `Collection` to carry both `argsKey` and `nestKey` so the same instance can back a top-level endpoint schema and a nested entity field. Consolidation is optional—see [Optional: consolidate Collection definitions](/blog/2026/05/01/v0.18-scalar-typed-downloads#collection-consolidation) in the v0.18 blog.
-
-## Where to find affected code
-
-Search for these patterns in your codebase:
-
-- `denormalize(input` followed by 3 params — both class methods and bare functions
-- `normalize(input` followed by `args, visit, delegate` params
-- `unvisit(` calls inside a `denormalize` body
-- `visit(` calls inside a `normalize` body
-- Spread `...args` inside a `denormalize` body
-- Spread `...args` inside a `normalize` body
-- TS interfaces / `declare` fields with the 3-param signature
-- TS interfaces / `declare` fields with the old normalize signature
-- Custom `Schema` / `SchemaClass` / `SchemaSimple` implementations
+Unrelated to delegate signatures: v0.18 lets a single `Collection` carry both `argsKey` and `nestKey`, so the same instance can back a top-level endpoint schema and a nested entity field. See [Optional: consolidate Collection definitions](/blog/2026/05/01/v0.18-scalar-typed-downloads#collection-consolidation) in the v0.18 blog.
 
 ## Reference
 
-- Changesets: `.changeset/denormalize-delegate.md`, `.changeset/normalize-delegate.md`
-- Built-in schema diffs: `packages/endpoint/src/schemas/{Array,Object,Values,Union,Query,Invalidate,Lazy,Collection}.ts`
 - New interfaces: [`IDenormalizeDelegate`](https://dataclient.io/rest/api/SchemaSimple), [`INormalizeDelegate`](https://dataclient.io/rest/api/SchemaSimple)
+- Built-in schema diffs: `packages/endpoint/src/schemas/{Array,Object,Values,Union,Query,Invalidate,Lazy,Collection}.ts`
+- Changesets: `.changeset/denormalize-delegate.md`, `.changeset/normalize-delegate.md`
+- Codemod source: [`website/static/codemods/v0.18.js`](https://github.com/reactive/data-client/blob/master/website/static/codemods/v0.18.js)

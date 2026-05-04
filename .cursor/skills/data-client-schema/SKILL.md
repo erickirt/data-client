@@ -169,7 +169,7 @@ For detailed API documentation, see the [references](references/) directory:
 - [Invalidate](references/Invalidate.md) - Delete entities
 - [Lazy](references/Lazy.md) - Deferred / circular schemas
 - [Scalar](references/Scalar.md) - Lens-dependent entity fields
-  - [Scalar demo](references/_ScalarDemo.mdx)
+  - [Scalar demo](references/_ScalarDemo.md)
 - [Values](references/Values.md) - Map schemas
 - [All](references/All.md) - List all entities of a kind
 - [Array](references/Array.md) - Immutable list schema

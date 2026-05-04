@@ -14,14 +14,14 @@ to represent the data expected.
 - [Entity](references/Entity.md) - represents a single unique object (denormalized)
 - [EntityMixin](references/EntityMixin.md) - turn any pre-existing class into an Entity
 - [new Union(Entity)](references/Union.md) - polymorphic objects (A | B)
-- `{[key:string]: Schema}` - immutable objects
+- [`{[key:string]: Schema}`](references/Object.md) - immutable objects
 - [new Invalidate(Entity|Union)](references/Invalidate.md) - to delete an Entity
 - [new Lazy(() => Schema)](references/Lazy.md) - break circular imports / defer deep recursive denormalization
 
 ### List
 
 - [new Collection([Schema])](references/Collection.md) - mutable/growable lists
-- `[Schema]` - immutable lists
+- [`[Schema]`](references/Array.md) - immutable lists
 - [new All(Entity|Union)](references/All.md) - list all Entities of a kind
 
 ### Map
@@ -154,7 +154,8 @@ See [partial-entities](references/partial-entities.md) for patterns and examples
 
 ## 8. Common Mistakes to Avoid
 
-- Don't forget to use `fromJS()` or assign default properties for class fields
+- The normalized cache stores **plain JSON-serializable objects** (POJOs), not class instances.
+- Don't forget to use `fromJS()` or assign default properties for class fields — bare TS field types emit no runtime defaults, so schema inference breaks
 - Manually merging or 'enriching' data; instead use `Entity.schema` for client-side joins
 
 # References

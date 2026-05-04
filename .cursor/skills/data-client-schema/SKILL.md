@@ -65,8 +65,8 @@ to represent the data expected.
 
 ## 3. Entity lifecycle methods
 
-- Normalize order: `process()` → `pk()` → [validate()](references/validation.md) → **visit nested schemas** (recurse into `schema` fields) → `mergeWithStore()` which calls `shouldUpdate()` and maybe `shouldReorder()` + `merge()`; metadata via `mergeMetaWithStore()`.
-- Denormalize order: `createIfValid()` → [validate()](references/validation.md) → `fromJS()` → **unvisit nested schemas** (recurse into `schema` fields).
+- **Normalize** (JSON response → cache): operates on POJOs; output is JSON-serializable plain data stored in the normalized cache. Order: `process()` → `pk()` → [validate()](references/validation.md) → **visit nested schemas** (recurse into `schema` fields) → if existing: `mergeWithStore()` which calls `shouldUpdate()` and maybe `shouldReorder()` + `merge()`; metadata via `mergeMetaWithStore()`.
+- **Denormalize** (cache → component): creates Entity **class instances** via `fromJS()`, restoring prototype chain so getters, methods, and `schema` processing work. Order: `createIfValid()` → [validate()](references/validation.md) → `fromJS()` → **unvisit nested schemas** (recurse into `schema` fields).
 
 ---
 
@@ -105,10 +105,19 @@ export const EventResource = resource({
 
 ### pk routing
 
-`pk()` uses `nestKey(parent, key)` when nested in an Entity and available; otherwise it uses `argsKey(...args)`, then serializes the result. Without options, it defaults to `argsKey: params => ({ ...params })`, using all endpoint args as the collection key. Provide both `argsKey` and `nestKey` to reuse one Collection definition top-level and nested.
+`pk()` uses `nestKey(parent, key)` when nested in an Entity and available; otherwise it uses `argsKey(...args)`, then serializes the result. Without options, it defaults to `argsKey: params => ({ ...params })`, using all endpoint args as the collection key.
 
 - `argsKey` — derive pk from endpoint arguments (default)
 - `nestKey` — derive pk from parent entity for nested shared-state collections
+
+Define **both** on the same `Collection` to reuse one definition top-level and nested. When `argsKey(args)` and `nestKey(parent)` produce the same object shape, the top-level fetch and the nested read resolve to the **same (referentially equal) array/map** — push/unshift/assign/move/remove on either updates both:
+
+```ts
+const userTodos = new Collection([Todo], {
+  argsKey: ({ userId }: { userId?: string }) => ({ userId }),
+  nestKey: (parent: User) => ({ userId: parent.id }),
+});
+```
 
 ### nonFilterArgumentKeys
 

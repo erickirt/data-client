@@ -1,6 +1,6 @@
 ---
 name: data-client-vue-testing
-description: Test @data-client/vue composables and components - renderDataCompose, mountDataClient, fixtures, jest, nock, Vue 3 reactive props, useSuspense testing
+description: Test @data-client/vue composables and components - renderDataCompose, mountDataClient, fixtures, jest, nock HTTP mocking, polling/subscription tests with fake timers, useSuspense, useLive, useSubscription, Vue 3 reactive props
 license: Apache 2.0
 ---
 
@@ -251,72 +251,62 @@ await nextTick();
 
 ## Testing with nock (HTTP Mocking)
 
+Use nock when a test must exercise the real fetch path — verifying URL construction, headers, request bodies, retries, or anything in your `RestEndpoint`/`Resource` networking layer. For pure store/state behavior, prefer `initialFixtures`/`resolverFixtures` (lighter and faster).
+
+Minimal shape:
+
 ```typescript
 import nock from 'nock';
 
 beforeAll(() => {
   nock(/.*/)
     .persist()
-    .defaultReplyHeaders({
-      'Access-Control-Allow-Origin': '*',
-      'Content-Type': 'application/json',
-    })
-    .options(/.*/)
-    .reply(200)
-    .get('/article/5')
-    .reply(200, { id: 5, title: 'hi ho' });
+    .defaultReplyHeaders({ 'Access-Control-Allow-Origin': '*', 'Content-Type': 'application/json' })
+    .options(/.*/).reply(200)            // CORS preflight (required in JSDOM)
+    .get('/article/5').reply(200, { id: 5, title: 'hi ho' });
 });
 
-afterAll(() => {
-  nock.cleanAll();
-});
+afterAll(() => nock.cleanAll());
 ```
 
-**Dynamic responses with nock:**
-```typescript
-const fetchMock = jest.fn(() => payload);
-nock(/.*/)
-  .get(`/article/${payload.id}`)
-  .reply(200, fetchMock);
+For dynamic server state, mutating-closure replies, request spying with `jest.fn()`, error responses, and mixing nock with fixtures, see [references/nock-http-mocking.md](references/nock-http-mocking.md).
 
-// Later verify:
-expect(fetchMock).toHaveBeenCalledTimes(1);
-```
+## Testing Polling and Subscriptions
 
-## Testing Polling/Subscriptions
+For composables with `pollFrequency`, `useLive`, or `useSubscription`, use fake timers so polls fire deterministically. Core flow:
+
+1. `jest.useFakeTimers()` **before** mount/render (so the interval is created under fake timers).
+2. Render, then `jest.advanceTimersByTime(frequency)` to drive the initial fetch.
+3. Mutate the response (e.g. `responseMock.mockReturnValue(...)`), advance time again, `await allSettled()` and `await nextTick()`.
+4. Restore real timers in `afterEach`: `jest.useRealTimers()`.
+
+Quick example:
 
 ```typescript
-it('should poll and update', async () => {
-  jest.useFakeTimers();
-  let serverData = { id: 5, title: 'Original' };
+jest.useFakeTimers();
+const responseMock = jest.fn(() => payload);
 
-  nock(/.*/)
-    .persist()
-    .get('/article/5')
-    .reply(200, () => serverData);
+const { result, allSettled, waitForNextUpdate, cleanup } = await renderDataCompose(
+  () => useSuspense(PollingArticleResource.get, { id: payload.id }),
+  { resolverFixtures: [{ endpoint: PollingArticleResource.get, response: responseMock }] },
+);
 
-  const { wrapper } = mountDataClient(PollingComponent);
-  
-  // Wait for initial render
-  for (let i = 0; i < 100 && !wrapper.find('h3').exists(); i++) {
-    await jest.advanceTimersByTimeAsync(frequency / 10);
-    await nextTick();
-  }
-  expect(wrapper.find('h3').text()).toBe('Original');
+jest.advanceTimersByTime(frequency);
+await allSettled();
+await waitForNextUpdate();
+const articleRef = await result;
 
-  // Simulate server update
-  serverData = { id: 5, title: 'Updated' };
+responseMock.mockReturnValue({ ...payload, title: 'updated' });
+jest.advanceTimersByTime(frequency);
+await allSettled();
+await nextTick();
 
-  // Advance timers to trigger poll
-  for (let i = 0; i < 20 && wrapper.find('h3').text() !== 'Updated'; i++) {
-    await jest.advanceTimersByTimeAsync(frequency / 10);
-    await nextTick();
-  }
-  expect(wrapper.find('h3').text()).toBe('Updated');
-
-  jest.useRealTimers();
-});
+expect(articleRef!.value.title).toBe('updated');
+jest.useRealTimers();
+cleanup();
 ```
+
+For unsubscribe patterns, component-level polling tests, fake-timer-safe `flushUntil`, polling via nock, and common pitfalls, see [references/polling-subscriptions.md](references/polling-subscriptions.md).
 
 ## Vue Suspense Behavior
 
@@ -380,6 +370,8 @@ For detailed API documentation, see the [references](references/) directory:
 
 - [Fixtures](references/Fixtures.md) - Fixture format reference
 - [unit-testing-hooks](references/unit-testing-hooks.md) - Hook/composable testing guide
+- [nock-http-mocking](references/nock-http-mocking.md) - Full nock setup, dynamic server state, request spying, errors, pitfalls
+- [polling-subscriptions](references/polling-subscriptions.md) - Fake-timer patterns for `useLive`/`useSubscription`/`pollFrequency`, unsubscribe verification, polling via nock
 
 ## Common Patterns
 

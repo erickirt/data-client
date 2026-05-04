@@ -60,7 +60,7 @@ delay: 150,
 },
 ]}>
 
-```ts title="api/Todo" {15-18,24} collapsed
+```ts title="api/Todo" {12-14,19} collapsed
 import { Entity, RestEndpoint, Collection } from '@data-client/rest';
 
 export class Todo extends Entity {
@@ -83,7 +83,7 @@ export const getTodos = new RestEndpoint({
 });
 ```
 
-```ts title="api/User" {13} collapsed
+```ts title="api/User" {13,19} collapsed
 import { Entity, RestEndpoint, Collection } from '@data-client/rest';
 import { Todo, userTodos } from './Todo';
 
@@ -247,10 +247,10 @@ await ctrl.fetch(StatsResource.getList.assign, {
 
 ## Options
 
-`argsKey` and `nestKey` compute the `Collection's` [pk](#pk). `argsKey` is used
-when the Collection is normalized as a top-level endpoint result; `nestKey` is
-used when the same Collection is nested in an [Entity](./Entity.md). Provide both
-to reuse one Collection definition in both contexts.
+`argsKey` and `nestKey` compute a `Collection` [pk](#pk). `argsKey` is used
+when a `Collection` is normalized as a top-level endpoint result; `nestKey` is
+used when the same `Collection` is nested in an [Entity](./Entity.md). Provide
+both to reuse one `Collection` definition in both contexts.
 
 ### argsKey(...args): Object {#argsKey}
 
@@ -283,10 +283,10 @@ When omitted, `argsKey` defaults to `params => ({ ...params })`.
 Returns a serializable Object whose members uniquely define this collection based
 on the parent it is nested inside.
 
-Nested `Collection's` [pk](#pk) are better defined by what they are nested inside. This allows
-the nested Collection to share its state with other instances whose key has the same value.
-When `argsKey` and `nestKey` return the same object shape, top-level and nested
-reads resolve to the same collection state.
+A nested `Collection` [pk](#pk) is usually best defined by what it is nested
+inside. This allows nested `Collection` instances to share state when their keys
+have the same value. When `argsKey` and `nestKey` return the same object shape,
+top-level and nested reads resolve to the same collection state.
 
 ```ts {13}
 import { Entity } from '@data-client/rest';
@@ -306,9 +306,9 @@ class User extends Entity {
 }
 ```
 
-In this case, `user.todos` and getTodos() response (from the argsKey example) will always
-be the same (referentially equal) Array. Add both key functions to the shared
-Collection definition:
+In this case, `user.todos` and the `getTodos()` response from the `argsKey`
+example are always the same (referentially equal) array. Add both key functions
+to the shared `Collection` definition:
 
 ```ts
 const userTodos = new Collection([Todo], {

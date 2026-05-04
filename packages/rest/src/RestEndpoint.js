@@ -334,7 +334,7 @@ Response (first 300 characters): ${text.substring(0, 300)}`;
     return this.extend({
       method: 'PATCH',
       schema: extractCollection(this.schema, s => s.remove),
-      name: this.name + '.remove',
+      name: this.name + '.partialUpdate',
     });
   }
 

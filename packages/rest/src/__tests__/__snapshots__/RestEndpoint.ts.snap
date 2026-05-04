@@ -6,7 +6,7 @@ exports[`RestEndpoint move: should extend name of parent endpoint 1`] = `"http:/
 
 exports[`RestEndpoint push: should extend name of parent endpoint 1`] = `"http://test.com/article-paginated.create"`;
 
-exports[`RestEndpoint remove: should extend name of parent endpoint 1`] = `"http://test.com/article-paginated.remove"`;
+exports[`RestEndpoint remove: should extend name of parent endpoint 1`] = `"http://test.com/article-paginated.partialUpdate"`;
 
 exports[`RestEndpoint unshift: should extend name of parent endpoint 1`] = `"http://test.com/article-paginated.create"`;
 
